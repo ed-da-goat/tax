@@ -7,7 +7,7 @@ export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -25,7 +25,7 @@ export default function Login() {
     setLoading(true);
 
     try {
-      await login(username, password);
+      await login(email, password);
       const dest = location.state?.from?.pathname || '/dashboard';
       navigate(dest, { replace: true });
     } catch (err) {
@@ -48,16 +48,16 @@ export default function Login() {
         <form onSubmit={handleSubmit} className="login-form">
           {error && <div className="alert alert--error">{error}</div>}
 
-          <label className="form-label" htmlFor="username">
-            Username
+          <label className="form-label" htmlFor="email">
+            Email
           </label>
           <input
-            id="username"
+            id="email"
             className="form-input"
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            autoComplete="username"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
             required
             autoFocus
           />

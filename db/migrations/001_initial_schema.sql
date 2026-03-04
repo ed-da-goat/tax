@@ -68,6 +68,7 @@ CREATE TABLE users (
     full_name       VARCHAR(255) NOT NULL,
     role            user_role NOT NULL DEFAULT 'ASSOCIATE',
     is_active       BOOLEAN NOT NULL DEFAULT TRUE,
+    last_login_at   TIMESTAMPTZ,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
     deleted_at      TIMESTAMPTZ
@@ -123,10 +124,13 @@ CREATE INDEX idx_audit_log_created ON audit_log (created_at);
 -- ---------------------------------------------------------------------------
 CREATE TABLE permission_log (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id         UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    user_id         UUID REFERENCES users(id) ON DELETE RESTRICT,
     endpoint        VARCHAR(500) NOT NULL,
     method          VARCHAR(10) NOT NULL,
     status_code     INT NOT NULL DEFAULT 403,
+    role_required   VARCHAR(50) NOT NULL,
+    role_provided   VARCHAR(50) NOT NULL,
+    ip_address      VARCHAR(45),
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

@@ -9,7 +9,7 @@ Compliance (CLAUDE.md):
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, String, text
+from sqlalchemy import DateTime, Integer, String, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -32,6 +32,7 @@ class PermissionLog(Base):
     )
     endpoint: Mapped[str] = mapped_column(String(500), nullable=False)
     method: Mapped[str] = mapped_column(String(10), nullable=False)
+    status_code: Mapped[int] = mapped_column(Integer, nullable=False, default=403, server_default=text("403"))
     role_required: Mapped[str] = mapped_column(String(50), nullable=False)
     role_provided: Mapped[str] = mapped_column(String(50), nullable=False)
     ip_address: Mapped[str | None] = mapped_column(String(45), nullable=True)
