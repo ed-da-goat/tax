@@ -38,8 +38,29 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(je_router, prefix="/api/v1", tags=["journal-entries"])
 
     # --- Phase 2 routers (Transactions) ---
-    # from app.routers.ap import router as ap_router
-    # app.include_router(ap_router, prefix="/api/v1/ap", tags=["accounts-payable"])
+    from app.routers.approvals import router as approvals_router
+    app.include_router(approvals_router, prefix="/api/v1", tags=["approvals"])
+
+    from app.routers.vendors import router as vendors_router
+    app.include_router(
+        vendors_router,
+        prefix="/api/v1/clients/{client_id}/vendors",
+        tags=["vendors"],
+    )
+
+    from app.routers.bills import router as bills_router
+    app.include_router(
+        bills_router,
+        prefix="/api/v1/clients/{client_id}/bills",
+        tags=["bills"],
+    )
+
+    from app.routers.invoices import router as invoices_router
+    app.include_router(
+        invoices_router,
+        prefix="/api/v1/clients/{client_id}/invoices",
+        tags=["invoices"],
+    )
 
     # --- Phase 3 routers (Document Management) ---
     # from app.routers.documents import router as documents_router

@@ -16,6 +16,9 @@ from app.models.permission_log import PermissionLog
 from app.models.chart_of_accounts import ChartOfAccounts
 from app.models.audit_log import AuditLog, AuditAction
 from app.models.journal_entry import JournalEntry, JournalEntryLine, JournalEntryStatus
+from app.models.vendor import Vendor
+from app.models.bill import Bill, BillLine, BillPayment, BillStatus
+from app.models.invoice import Invoice, InvoiceLine, InvoicePayment, InvoiceStatus
 
 __all__ = [
     "Base", "TimestampMixin", "SoftDeleteMixin",
@@ -24,4 +27,7 @@ __all__ = [
     "ChartOfAccounts",
     "AuditLog", "AuditAction",
     "JournalEntry", "JournalEntryLine", "JournalEntryStatus",
+    "Vendor",
+    "Bill", "BillLine", "BillPayment", "BillStatus",
+    "Invoice", "InvoiceLine", "InvoicePayment", "InvoiceStatus",
 ]
