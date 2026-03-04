@@ -105,3 +105,51 @@ Track all blockers, compliance questions, and conflicts here.
 - **Status:** OPEN
 - **Description:** During execution of the Georgia Tax Research Agent, both WebSearch and WebFetch tools were denied. All research was conducted from the agent's training knowledge (verified through early 2025). All TY2026-specific rates are flagged as [UNVERIFIED]. CPA_OWNER must independently verify all rates against current official sources before production use.
 - **Resolution:** (pending -- CPA_OWNER manual verification required)
+
+### #12 — QBO Class Tracking usage must be confirmed before migration
+- **Label:** COMPLIANCE
+- **Module:** M2 (Client splitter)
+- **Assigned to:** CPA_OWNER
+- **Status:** OPEN
+- **Description:** If QBO Class Tracking is enabled and classes map 1:1 to clients, the Class field should be used as the primary client identifier instead of the Name field in transaction exports. CPA_OWNER must confirm: (1) Is Class Tracking enabled? (2) Do classes map to clients? (3) Should Class override Name for client assignment? This decision must be made BEFORE running the migration parser. See docs/migration/client_splitting_logic.md Section 2.2.
+- **Resolution:** (pending)
+
+### #13 — Entity type mapping CSV must be provided by CPA before migration
+- **Label:** BLOCKER
+- **Module:** M2 (Client splitter)
+- **Assigned to:** CPA_OWNER
+- **Status:** OPEN
+- **Description:** QBO does not have a native "entity type" field. The CPA must provide a supplemental CSV (entity_type_mapping.csv) mapping each customer name to its entity type (SOLE_PROP, S_CORP, C_CORP, PARTNERSHIP_LLC). Without this file, the migration cannot assign entity types to the clients table. See docs/migration/column_mapping.md Section 11.1.
+- **Resolution:** (pending)
+
+### #14 — Employee-to-client mapping CSV must be provided by CPA before migration
+- **Label:** BLOCKER
+- **Module:** M6 (Payroll history importer)
+- **Assigned to:** CPA_OWNER
+- **Status:** OPEN
+- **Description:** QBO does not natively link employees to specific clients in a multi-client firm. The CPA must provide a supplemental CSV (employee_client_mapping.csv) associating each employee name with their client. Without this, payroll records cannot be assigned to the correct client ledger. See docs/migration/column_mapping.md Section 11.2.
+- **Resolution:** (pending)
+
+### #15 — Vendor-to-client mapping CSV must be provided by CPA before migration
+- **Label:** BLOCKER
+- **Module:** M4 (Transaction history importer)
+- **Assigned to:** CPA_OWNER
+- **Status:** OPEN
+- **Description:** Vendors in QBO are shared across all clients. The CPA must provide a supplemental CSV (vendor_client_mapping.csv) mapping each vendor to the client(s) they serve. Vendors serving multiple clients will be duplicated per client to maintain client isolation. See docs/migration/column_mapping.md Section 11.3.
+- **Resolution:** (pending)
+
+### #16 — Several QBO columns have no target in current DB schema ([UNMAPPED])
+- **Label:** CONFLICT
+- **Module:** M1 (QB CSV parser and validator)
+- **Assigned to:** CPA_OWNER
+- **Status:** OPEN
+- **Description:** The column mapping analysis identified 25+ QBO columns with no target in the current PostgreSQL schema. Key unmapped columns include: Customer.Notes, Customer.Terms, Customer.Tax_Resale_No, ChartOfAccounts.Description, Transaction.Class, Transaction.Location, Vendor.1099_Tracking, Vendor.Terms, Payroll.Hours, Payroll.Check_No. CPA_OWNER must decide which of these should be added to the schema vs. ignored. Full list in docs/migration/column_mapping.md Section 9.
+- **Resolution:** (pending)
+
+### #17 — QBO export row limits may truncate data for firms with long history
+- **Label:** BLOCKER
+- **Module:** M1 (QB CSV parser and validator)
+- **Assigned to:** CPA_OWNER
+- **Status:** OPEN
+- **Description:** QBO silently truncates CSV exports at approximately 10,000 rows for Transaction Detail and Invoice List reports. For a firm with 26-50 clients and multiple years of history, exports will likely exceed this limit. The CPA must export in date-range chunks (by quarter or year) and the parser must support merging chunked exports. CPA_OWNER should test with an "All Dates" export first and compare row counts against QBO dashboard totals. See docs/migration/qbo_known_issues.md Section 3.
+- **Resolution:** (pending)

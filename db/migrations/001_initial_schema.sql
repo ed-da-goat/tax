@@ -109,7 +109,7 @@ CREATE TABLE audit_log (
     action          audit_action NOT NULL,
     old_values      JSONB,
     new_values      JSONB,
-    user_id         UUID REFERENCES users(id),
+    user_id         UUID REFERENCES users(id) ON DELETE RESTRICT,
     ip_address      INET,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -123,7 +123,7 @@ CREATE INDEX idx_audit_log_created ON audit_log (created_at);
 -- ---------------------------------------------------------------------------
 CREATE TABLE permission_log (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id         UUID NOT NULL REFERENCES users(id),
+    user_id         UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
     endpoint        VARCHAR(500) NOT NULL,
     method          VARCHAR(10) NOT NULL,
     status_code     INT NOT NULL DEFAULT 403,
@@ -143,7 +143,7 @@ CREATE INDEX idx_permission_log_created ON permission_log (created_at);
 -- ---------------------------------------------------------------------------
 CREATE TABLE chart_of_accounts (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    client_id       UUID NOT NULL REFERENCES clients(id),
+    client_id       UUID NOT NULL REFERENCES clients(id) ON DELETE RESTRICT,
     account_number  VARCHAR(20) NOT NULL,
     account_name    VARCHAR(255) NOT NULL,
     account_type    account_type NOT NULL,
@@ -163,13 +163,13 @@ CREATE INDEX idx_coa_type ON chart_of_accounts (account_type) WHERE deleted_at I
 -- ---------------------------------------------------------------------------
 CREATE TABLE journal_entries (
     id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    client_id        UUID NOT NULL REFERENCES clients(id),
+    client_id        UUID NOT NULL REFERENCES clients(id) ON DELETE RESTRICT,
     entry_date       DATE NOT NULL,
     description      TEXT,
     reference_number VARCHAR(100),
     status           journal_entry_status NOT NULL DEFAULT 'DRAFT',
-    created_by       UUID NOT NULL REFERENCES users(id),
-    approved_by      UUID REFERENCES users(id),
+    created_by       UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    approved_by      UUID REFERENCES users(id) ON DELETE RESTRICT,
     posted_at        TIMESTAMPTZ,
     created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -186,8 +186,8 @@ CREATE INDEX idx_je_reference ON journal_entries (reference_number) WHERE delete
 -- ---------------------------------------------------------------------------
 CREATE TABLE journal_entry_lines (
     id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    journal_entry_id  UUID NOT NULL REFERENCES journal_entries(id),
-    account_id        UUID NOT NULL REFERENCES chart_of_accounts(id),
+    journal_entry_id  UUID NOT NULL REFERENCES journal_entries(id) ON DELETE RESTRICT,
+    account_id        UUID NOT NULL REFERENCES chart_of_accounts(id) ON DELETE RESTRICT,
     debit             NUMERIC(15,2) NOT NULL DEFAULT 0
                       CHECK (debit >= 0),
     credit            NUMERIC(15,2) NOT NULL DEFAULT 0
@@ -215,7 +215,7 @@ CREATE INDEX idx_jel_account ON journal_entry_lines (account_id) WHERE deleted_a
 -- ---------------------------------------------------------------------------
 CREATE TABLE vendors (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    client_id       UUID NOT NULL REFERENCES clients(id),
+    client_id       UUID NOT NULL REFERENCES clients(id) ON DELETE RESTRICT,
     name            VARCHAR(255) NOT NULL,
     tax_id_encrypted BYTEA,
     address         VARCHAR(500),
@@ -237,8 +237,8 @@ CREATE INDEX idx_vendors_name ON vendors (client_id, name) WHERE deleted_at IS N
 -- ---------------------------------------------------------------------------
 CREATE TABLE bills (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    client_id       UUID NOT NULL REFERENCES clients(id),
-    vendor_id       UUID NOT NULL REFERENCES vendors(id),
+    client_id       UUID NOT NULL REFERENCES clients(id) ON DELETE RESTRICT,
+    vendor_id       UUID NOT NULL REFERENCES vendors(id) ON DELETE RESTRICT,
     bill_number     VARCHAR(100),
     bill_date       DATE NOT NULL,
     due_date        DATE NOT NULL,
@@ -259,8 +259,8 @@ CREATE INDEX idx_bills_due_date ON bills (due_date) WHERE deleted_at IS NULL;
 -- ---------------------------------------------------------------------------
 CREATE TABLE bill_lines (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    bill_id         UUID NOT NULL REFERENCES bills(id),
-    account_id      UUID NOT NULL REFERENCES chart_of_accounts(id),
+    bill_id         UUID NOT NULL REFERENCES bills(id) ON DELETE RESTRICT,
+    account_id      UUID NOT NULL REFERENCES chart_of_accounts(id) ON DELETE RESTRICT,
     description     TEXT,
     amount          NUMERIC(15,2) NOT NULL CHECK (amount >= 0),
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -275,7 +275,7 @@ CREATE INDEX idx_bill_lines_bill ON bill_lines (bill_id) WHERE deleted_at IS NUL
 -- ---------------------------------------------------------------------------
 CREATE TABLE bill_payments (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    bill_id         UUID NOT NULL REFERENCES bills(id),
+    bill_id         UUID NOT NULL REFERENCES bills(id) ON DELETE RESTRICT,
     payment_date    DATE NOT NULL,
     amount          NUMERIC(15,2) NOT NULL CHECK (amount > 0),
     payment_method  VARCHAR(50),
@@ -298,7 +298,7 @@ CREATE INDEX idx_bill_payments_date ON bill_payments (payment_date) WHERE delete
 -- ---------------------------------------------------------------------------
 CREATE TABLE invoices (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    client_id       UUID NOT NULL REFERENCES clients(id),
+    client_id       UUID NOT NULL REFERENCES clients(id) ON DELETE RESTRICT,
     customer_name   VARCHAR(255) NOT NULL,
     invoice_number  VARCHAR(100),
     invoice_date    DATE NOT NULL,
@@ -320,8 +320,8 @@ CREATE INDEX idx_invoices_date ON invoices (invoice_date) WHERE deleted_at IS NU
 -- ---------------------------------------------------------------------------
 CREATE TABLE invoice_lines (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    invoice_id      UUID NOT NULL REFERENCES invoices(id),
-    account_id      UUID NOT NULL REFERENCES chart_of_accounts(id),
+    invoice_id      UUID NOT NULL REFERENCES invoices(id) ON DELETE RESTRICT,
+    account_id      UUID NOT NULL REFERENCES chart_of_accounts(id) ON DELETE RESTRICT,
     description     TEXT,
     quantity        NUMERIC(10,2) NOT NULL DEFAULT 1,
     unit_price      NUMERIC(15,2) NOT NULL CHECK (unit_price >= 0),
@@ -338,7 +338,7 @@ CREATE INDEX idx_invoice_lines_invoice ON invoice_lines (invoice_id) WHERE delet
 -- ---------------------------------------------------------------------------
 CREATE TABLE invoice_payments (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    invoice_id      UUID NOT NULL REFERENCES invoices(id),
+    invoice_id      UUID NOT NULL REFERENCES invoices(id) ON DELETE RESTRICT,
     payment_date    DATE NOT NULL,
     amount          NUMERIC(15,2) NOT NULL CHECK (amount > 0),
     payment_method  VARCHAR(50),
@@ -361,11 +361,11 @@ CREATE INDEX idx_invoice_payments_date ON invoice_payments (payment_date) WHERE 
 -- ---------------------------------------------------------------------------
 CREATE TABLE bank_accounts (
     id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    client_id               UUID NOT NULL REFERENCES clients(id),
+    client_id               UUID NOT NULL REFERENCES clients(id) ON DELETE RESTRICT,
     account_name            VARCHAR(255) NOT NULL,
     account_number_encrypted BYTEA,
     institution_name        VARCHAR(255),
-    account_id              UUID REFERENCES chart_of_accounts(id),   -- linked GL account
+    account_id              UUID REFERENCES chart_of_accounts(id) ON DELETE RESTRICT,   -- linked GL account
     created_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
     deleted_at              TIMESTAMPTZ
@@ -378,14 +378,14 @@ CREATE INDEX idx_bank_accounts_client ON bank_accounts (client_id) WHERE deleted
 -- ---------------------------------------------------------------------------
 CREATE TABLE bank_transactions (
     id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    bank_account_id   UUID NOT NULL REFERENCES bank_accounts(id),
+    bank_account_id   UUID NOT NULL REFERENCES bank_accounts(id) ON DELETE RESTRICT,
     transaction_date  DATE NOT NULL,
     description       TEXT,
     amount            NUMERIC(15,2) NOT NULL,
     transaction_type  bank_transaction_type NOT NULL,
     is_reconciled     BOOLEAN NOT NULL DEFAULT FALSE,
     reconciled_at     TIMESTAMPTZ,
-    journal_entry_id  UUID REFERENCES journal_entries(id),
+    journal_entry_id  UUID REFERENCES journal_entries(id) ON DELETE RESTRICT,
     created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
     deleted_at        TIMESTAMPTZ
@@ -400,13 +400,13 @@ CREATE INDEX idx_bank_txn_reconciled ON bank_transactions (is_reconciled) WHERE 
 -- ---------------------------------------------------------------------------
 CREATE TABLE reconciliations (
     id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    bank_account_id     UUID NOT NULL REFERENCES bank_accounts(id),
+    bank_account_id     UUID NOT NULL REFERENCES bank_accounts(id) ON DELETE RESTRICT,
     statement_date      DATE NOT NULL,
     statement_balance   NUMERIC(15,2) NOT NULL,
     reconciled_balance  NUMERIC(15,2),
     status              reconciliation_status NOT NULL DEFAULT 'IN_PROGRESS',
     completed_at        TIMESTAMPTZ,
-    completed_by        UUID REFERENCES users(id),
+    completed_by        UUID REFERENCES users(id) ON DELETE RESTRICT,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
     deleted_at          TIMESTAMPTZ
@@ -422,15 +422,15 @@ CREATE INDEX idx_reconciliations_status ON reconciliations (status) WHERE delete
 
 CREATE TABLE documents (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    client_id       UUID NOT NULL REFERENCES clients(id),
+    client_id       UUID NOT NULL REFERENCES clients(id) ON DELETE RESTRICT,
     file_name       VARCHAR(500) NOT NULL,
     file_path       VARCHAR(1000) NOT NULL,
     file_type       VARCHAR(100),
     file_size_bytes BIGINT,
     description     TEXT,
     tags            TEXT[],
-    uploaded_by     UUID NOT NULL REFERENCES users(id),
-    journal_entry_id UUID REFERENCES journal_entries(id),
+    uploaded_by     UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    journal_entry_id UUID REFERENCES journal_entries(id) ON DELETE RESTRICT,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
     deleted_at      TIMESTAMPTZ
@@ -450,7 +450,7 @@ CREATE INDEX idx_documents_je ON documents (journal_entry_id) WHERE deleted_at I
 -- ---------------------------------------------------------------------------
 CREATE TABLE employees (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    client_id       UUID NOT NULL REFERENCES clients(id),
+    client_id       UUID NOT NULL REFERENCES clients(id) ON DELETE RESTRICT,
     first_name      VARCHAR(100) NOT NULL,
     last_name       VARCHAR(100) NOT NULL,
     ssn_encrypted   BYTEA,
@@ -474,12 +474,12 @@ CREATE INDEX idx_employees_active ON employees (client_id, is_active) WHERE dele
 -- ---------------------------------------------------------------------------
 CREATE TABLE payroll_runs (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    client_id       UUID NOT NULL REFERENCES clients(id),
+    client_id       UUID NOT NULL REFERENCES clients(id) ON DELETE RESTRICT,
     pay_period_start DATE NOT NULL,
     pay_period_end  DATE NOT NULL,
     pay_date        DATE NOT NULL,
     status          payroll_run_status NOT NULL DEFAULT 'DRAFT',
-    finalized_by    UUID REFERENCES users(id),
+    finalized_by    UUID REFERENCES users(id) ON DELETE RESTRICT,
     finalized_at    TIMESTAMPTZ,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -497,8 +497,8 @@ CREATE INDEX idx_payroll_runs_pay_date ON payroll_runs (pay_date) WHERE deleted_
 -- ---------------------------------------------------------------------------
 CREATE TABLE payroll_items (
     id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    payroll_run_id       UUID NOT NULL REFERENCES payroll_runs(id),
-    employee_id          UUID NOT NULL REFERENCES employees(id),
+    payroll_run_id       UUID NOT NULL REFERENCES payroll_runs(id) ON DELETE RESTRICT,
+    employee_id          UUID NOT NULL REFERENCES employees(id) ON DELETE RESTRICT,
     gross_pay            NUMERIC(15,2) NOT NULL CHECK (gross_pay >= 0),
     federal_withholding  NUMERIC(15,2) NOT NULL DEFAULT 0 CHECK (federal_withholding >= 0),
     state_withholding    NUMERIC(15,2) NOT NULL DEFAULT 0 CHECK (state_withholding >= 0),
@@ -552,12 +552,12 @@ CREATE INDEX idx_ptt_filing ON payroll_tax_tables (tax_year, tax_type, filing_st
 
 CREATE TABLE tax_form_exports (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    client_id       UUID NOT NULL REFERENCES clients(id),
+    client_id       UUID NOT NULL REFERENCES clients(id) ON DELETE RESTRICT,
     form_type       VARCHAR(50) NOT NULL,        -- e.g. '940', '941', '1120S', '1065'
     tax_year        INT NOT NULL,
     tax_period      VARCHAR(20),                 -- e.g. 'Q1', 'Q2', 'ANNUAL'
     status          tax_form_status NOT NULL DEFAULT 'DRAFT',
-    generated_by    UUID NOT NULL REFERENCES users(id),
+    generated_by    UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
     file_path       VARCHAR(1000),
     generated_at    TIMESTAMPTZ,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -610,7 +610,7 @@ CREATE INDEX idx_migration_batches_status ON migration_batches (status);
 
 CREATE TABLE migration_errors (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    batch_id        UUID NOT NULL REFERENCES migration_batches(id),
+    batch_id        UUID NOT NULL REFERENCES migration_batches(id) ON DELETE RESTRICT,
     source_row      INT,
     error_type      VARCHAR(100),
     error_message   TEXT,
@@ -742,7 +742,22 @@ $$;
 
 
 -- ============================================================================
--- TRIGGER: DOUBLE-ENTRY VALIDATION
+-- TRIGGER: DOUBLE-ENTRY VALIDATION (CLAUDE.md Compliance Rule #1)
+--
+-- CLAUDE.md mandates: "Enforce at the database level with a CHECK constraint."
+-- A CHECK constraint CANNOT be used here because the validation requires
+-- cross-table aggregation (summing journal_entry_lines for a given
+-- journal_entry). PostgreSQL CHECK constraints can only reference columns
+-- within the same row of the same table.
+--
+-- This BEFORE trigger is the strongest possible database-level enforcement:
+-- it runs inside the same transaction, before the row is committed, and
+-- raises an EXCEPTION (rolling back the transaction) if debits != credits.
+-- This is functionally equivalent to a CHECK constraint for this use case.
+--
+-- APPROVED DEVIATION: CPA_OWNER has reviewed and accepted this approach.
+-- See OPEN_ISSUES.md for the original review discussion.
+-- ============================================================================
 -- Prevents a journal_entry from being set to POSTED status unless
 -- SUM(debits) = SUM(credits) for its lines and there is at least one line.
 -- ============================================================================

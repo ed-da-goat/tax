@@ -1,0 +1,9 @@
+﻿"Customer Contact List"
+"Sample CPA Firm"
+"As of March 04, 2026"
+
+"Customer","Phone","Email","Full Name","Company","Billing Street","Billing City","Billing State","Billing ZIP","Billing Country","Open Balance","Notes","Tax Resale No.","Terms","Created"
+"Peachtree Landscaping LLC","(770) 555-1234","info@peachtreelandscaping.com","James Williams","Peachtree Landscaping LLC","456 Magnolia Blvd","Marietta","GA","30060","US","14,474.46","Entity: PARTNERSHIP_LLC","","Net 30","01/18/2020"
+"Peachtree Landscaping LLC:Residential Division","(770) 555-1234","info@peachtreelandscaping.com","Mike Johnson","Peachtree Landscaping LLC","456 Magnolia Blvd","Marietta","GA","30060","US","0.00","","","Net 30","06/15/2021"
+"Atlanta Tech Solutions Inc","(404) 555-5678","sarah@atlantatechsolutions.com","Sarah Chen","Atlanta Tech Solutions Inc","1200 Peachtree St NE, Suite 400","Atlanta","GA","30309","US","10,747.07","Entity: S_CORP","","Net 30","01/19/2020"
+"Savannah Sweets","(912) 555-9012","maria@savannahsweets.com","Maria Rodriguez","Savannah Sweets","89 River St","Savannah","GA","31401","US","12,307.59","Entity: SOLE_PROP","","Net 30","01/02/2020"
