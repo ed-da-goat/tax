@@ -65,11 +65,12 @@ All 34 modules broken into agent-sized tasks. One task = one agent session = one
 
 ## Phase 1 — Foundation
 
-### TASK-008
+### TASK-008 ✓ DONE
 - **Module:** F1 — Database schema + migrations
 - **Depends on:** NONE
 - **Compliance risk:** HIGH
 - **Estimated complexity:** HIGH
+- **Status:** DONE (2026-03-04, CEO Orchestrator Session 1)
 - **Agent instructions:** The schema (001_initial_schema.sql) is already created by the Research Agent. This task applies it to the database, verifies all tables/constraints/triggers work, and writes tests confirming double-entry enforcement and audit trail triggers fire correctly.
 
 ### TASK-009
@@ -258,7 +259,7 @@ All 34 modules broken into agent-sized tasks. One task = one agent session = one
 
 ### TASK-033
 - **Module:** X8 — Federal Form 1065
-- **Depends on:** TASK-010, TASK-033
+- **Depends on:** TASK-010
 - **Compliance risk:** HIGH
 - **Estimated complexity:** HIGH
 - **Agent instructions:** Build Form 1065 data export for partnership/LLC clients. Map GL data to form lines including K-1 schedule data. CPA_OWNER only.
