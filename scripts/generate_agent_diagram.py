@@ -1,289 +1,203 @@
 #!/usr/bin/env python3
 """
-Generate the Agent Architecture Diagram for the Georgia CPA Accounting System.
-Produces a PNG image showing all agents, their roles, and how they interact.
-
-Usage:
-    python3 scripts/generate_agent_diagram.py
-    # or with the temp venv:
-    /tmp/diagram_venv/bin/python3 scripts/generate_agent_diagram.py
+Agent Architecture Diagram — Version 11.
+Landscape page, vertical tree (top to bottom), zoomed in, big text.
+72 DPI so what you see in Preview is roughly 1:1 pixel.
 """
 
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
+from matplotlib.patches import FancyBboxPatch
+import matplotlib.patheffects as pe
 import numpy as np
 
 
-def draw_agent_box(ax, x, y, w, h, title, subtitle, color, text_color='white', fontsize=9):
-    box = FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.02",
-                         facecolor=color, edgecolor='#333333', linewidth=1.5,
-                         alpha=0.95)
-    ax.add_patch(box)
-    ax.text(x + w/2, y + h - 0.03, title, ha='center', va='top',
-            fontsize=fontsize, fontweight='bold', color=text_color)
-    ax.text(x + w/2, y + h - 0.07, subtitle, ha='center', va='top',
-            fontsize=6, color=text_color, alpha=0.85, style='italic')
+def node(ax, x, y, label, color, r=0.4, fs=18):
+    for i in range(3):
+        ax.add_patch(plt.Circle((x, y), r+0.05*(3-i), fc=color, ec='none', alpha=0.04, zorder=3))
+    ax.add_patch(plt.Circle((x, y), r, fc=color, ec='white', lw=3, zorder=10))
+    ax.add_patch(plt.Circle((x, y-r*0.1), r*0.6, fc='white', ec='none', alpha=0.1, zorder=11))
+    ax.text(x, y, label, ha='center', va='center', fontsize=fs, fontweight='bold',
+            color='white', zorder=12, path_effects=[pe.withStroke(linewidth=1.5, foreground=color)])
 
 
-def draw_phase_box(ax, x, y, w, h, title, modules, color, text_color='white'):
-    box = FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.01",
-                         facecolor=color, edgecolor='#555', linewidth=1,
-                         alpha=0.85)
-    ax.add_patch(box)
-    ax.text(x + w/2, y + h - 0.015, title, ha='center', va='top',
-            fontsize=7, fontweight='bold', color=text_color)
-    ax.text(x + w/2, y + h/2 - 0.01, modules, ha='center', va='center',
-            fontsize=5.5, color=text_color, alpha=0.9, family='monospace')
+def branch(ax, x1, y1, x2, y2, color='#ccc', lw=2.5):
+    t = np.linspace(0, 1, 50)
+    my = (y1+y2)/2
+    xs = [x1, x1, x2, x2]
+    ys = [y1, my+(y1-y2)*0.12, my-(y1-y2)*0.12, y2]
+    bx = (1-t)**3*xs[0]+3*(1-t)**2*t*xs[1]+3*(1-t)*t**2*xs[2]+t**3*xs[3]
+    by = (1-t)**3*ys[0]+3*(1-t)**2*t*ys[1]+3*(1-t)*t**2*ys[2]+t**3*ys[3]
+    ax.plot(bx, by, color=color, lw=lw, zorder=1, solid_capstyle='round', alpha=0.5)
 
 
-def draw_arrow(ax, x1, y1, x2, y2, color='#666', style='->', lw=1.0):
-    ax.annotate('', xy=(x2, y2), xytext=(x1, y1),
-                arrowprops=dict(arrowstyle=style, color=color, lw=lw,
-                               connectionstyle='arc3,rad=0.1'))
+def twig(ax, x1, y1, x2, y2, color='#ccc', lw=1.5):
+    ax.plot([x1, x2], [y1, y2], color=color, lw=lw, zorder=2, alpha=0.4, solid_capstyle='round')
 
 
-def draw_file_box(ax, x, y, w, h, name, color='#f0f0f0'):
-    box = FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.005",
-                         facecolor=color, edgecolor='#999', linewidth=0.8)
-    ax.add_patch(box)
-    ax.text(x + w/2, y + h/2, name, ha='center', va='center',
-            fontsize=5, family='monospace', color='#333')
+def label_block(ax, x, y, items, color, fs=14, align='left'):
+    """Compact text list next to an agent."""
+    ha = 'left' if align == 'left' else 'right'
+    for i, item in enumerate(items):
+        iy = y - i * 0.38
+        # small dot + text
+        dx = 0.12 if align == 'left' else -0.12
+        ax.add_patch(plt.Circle((x + (0 if align == 'left' else -0.05), iy), 0.06,
+                                fc=color, ec='none', zorder=6, alpha=0.7))
+        ax.text(x + dx + 0.05, iy, item, ha=ha, va='center', fontsize=fs,
+                color='#333', zorder=6)
 
 
 def main():
-    fig, ax = plt.subplots(1, 1, figsize=(20, 14))
-    ax.set_xlim(0, 1)
-    ax.set_ylim(0, 1)
+    fig, ax = plt.subplots(figsize=(28, 16))
+    ax.set_xlim(0, 28)
+    ax.set_ylim(0, 16)
     ax.axis('off')
-    ax.set_facecolor('#fafafa')
-    fig.patch.set_facecolor('#fafafa')
+    fig.patch.set_facecolor('#fcfcfc')
+    ax.set_facecolor('#fcfcfc')
 
-    # Title
-    ax.text(0.5, 0.97, 'GEORGIA CPA ACCOUNTING SYSTEM — AGENT ARCHITECTURE',
-            ha='center', va='top', fontsize=16, fontweight='bold', color='#1a1a2e')
-    ax.text(0.5, 0.945, 'How agents coordinate to build the system',
-            ha='center', va='top', fontsize=10, color='#666')
+    # ── TITLE ──
+    ax.text(14, 15.5, 'Georgia CPA — Agent Architecture', ha='center',
+            fontsize=36, fontweight='bold', color='#2c3e50')
+    ax.text(14, 15.0, '49 agents  •  shared-file coordination  •  no direct agent talk',
+            ha='center', fontsize=18, color='#aaa')
 
-    # ═══════════════════════════════════════
-    # ORCHESTRATION LAYER (top)
-    # ═══════════════════════════════════════
-    # Background
-    layer_bg = FancyBboxPatch((0.02, 0.82), 0.96, 0.1, boxstyle="round,pad=0.01",
-                              facecolor='#fff3e0', edgecolor='#ff6b35', linewidth=2, alpha=0.3)
-    ax.add_patch(layer_bg)
-    ax.text(0.04, 0.91, 'ORCHESTRATION', fontsize=7, fontweight='bold',
-            color='#ff6b35', alpha=0.7, rotation=90, va='center')
+    # ═════════════════════════════
+    # ROW 0: CEO
+    # ═════════════════════════════
+    cx, cy = 14, 13.5
+    node(ax, cx, cy, 'CEO', '#e74c3c', r=0.55, fs=22)
 
-    draw_agent_box(ax, 0.35, 0.83, 0.30, 0.08,
-                   'CEO ORCHESTRATOR',
-                   'Reads all files • Assigns tasks • Detects conflicts • Status dashboard',
-                   '#ff6b35')
+    # Shared files to the right of CEO
+    ax.text(17.5, 14.0, 'Shared State', fontsize=14, fontweight='bold', color='#aaa')
+    for i, f in enumerate(['CLAUDE.md', 'AGENT_LOG.md', 'OPEN_ISSUES.md', 'WORK_QUEUE.md', 'ARCHITECTURE.md']):
+        ax.add_patch(plt.Circle((17.2, 13.6-i*0.38), 0.06, fc='#bdc3c7', ec='none', zorder=6))
+        ax.text(17.4, 13.6-i*0.38, f, fontsize=13, va='center', color='#777', family='monospace')
+    twig(ax, cx+0.55, cy, 17.0, 13.4, '#e74c3c', lw=2)
 
-    # ═══════════════════════════════════════
-    # COORDINATION FILES (middle band)
-    # ═══════════════════════════════════════
-    coord_bg = FancyBboxPatch((0.02, 0.74), 0.96, 0.07, boxstyle="round,pad=0.01",
-                              facecolor='#e8e8e8', edgecolor='#999', linewidth=1, alpha=0.4)
-    ax.add_patch(coord_bg)
-    ax.text(0.04, 0.775, 'SHARED STATE', fontsize=7, fontweight='bold',
-            color='#666', alpha=0.7, rotation=90, va='center')
+    # ═════════════════════════════
+    # ROW 1: Three team hubs
+    # ═════════════════════════════
+    # Research
+    rx, ry = 5, 11
+    branch(ax, cx, cy-0.55, rx, ry+0.45, '#1abc9c', lw=3.5)
+    node(ax, rx, ry, 'Research', '#1abc9c', r=0.5, fs=16)
+    ax.text(rx, ry-0.7, 'Team (4)', ha='center', fontsize=13, color='#1abc9c', fontweight='bold')
 
-    files = ['CLAUDE.md', 'AGENT_LOG.md', 'OPEN_ISSUES.md', 'WORK_QUEUE.md', 'ARCHITECTURE.md']
-    for i, f in enumerate(files):
-        draw_file_box(ax, 0.12 + i * 0.16, 0.755, 0.13, 0.025, f, '#e0e0e0')
+    # Migration
+    mx, my = 14, 11
+    branch(ax, cx, cy-0.55, mx, my+0.45, '#f39c12', lw=3.5)
+    node(ax, mx, my, 'Migration', '#f39c12', r=0.5, fs=15)
+    ax.text(mx, my-0.7, 'Team (2)', ha='center', fontsize=13, color='#f39c12', fontweight='bold')
 
-    # ═══════════════════════════════════════
-    # RESEARCH LAYER
-    # ═══════════════════════════════════════
-    research_bg = FancyBboxPatch((0.02, 0.60), 0.96, 0.13, boxstyle="round,pad=0.01",
-                                 facecolor='#e0f7fa', edgecolor='#4ecdc4', linewidth=2, alpha=0.3)
-    ax.add_patch(research_bg)
-    ax.text(0.04, 0.665, 'RESEARCH\n(Run Once)', fontsize=6, fontweight='bold',
-            color='#4ecdc4', alpha=0.7, rotation=90, va='center', ha='center')
+    # Builders
+    bx, by = 23, 11
+    branch(ax, cx, cy-0.55, bx, by+0.45, '#3498db', lw=3.5)
+    node(ax, bx, by, 'Builders', '#3498db', r=0.5, fs=15)
+    ax.text(bx, by-0.7, '43 agents', ha='center', fontsize=13, color='#3498db', fontweight='bold')
 
-    draw_agent_box(ax, 0.07, 0.615, 0.20, 0.08,
-                   'RESEARCH AGENT (00)',
-                   'Schema • Setup • Migration Spec • Work Queue',
-                   '#4ecdc4', fontsize=8)
+    # ═════════════════════════════
+    # ROW 2: Individual agents
+    # ═════════════════════════════
 
-    draw_agent_box(ax, 0.29, 0.615, 0.17, 0.08,
-                   'REVIEW AGENT (03)',
-                   'QA on Research output',
-                   '#26a69a')
-
-    draw_agent_box(ax, 0.48, 0.615, 0.22, 0.08,
-                   'GA TAX RESEARCH (04)',
-                   'DOR tables • SUTA • Federal rates • Forms',
-                   '#00897b')
-
-    draw_agent_box(ax, 0.72, 0.615, 0.22, 0.08,
-                   'QB FORMAT RESEARCH (05)',
-                   'CSV formats • Column mapping • Sample data',
-                   '#00796b')
-
-    # ═══════════════════════════════════════
-    # MIGRATION LAYER
-    # ═══════════════════════════════════════
-    migration_bg = FancyBboxPatch((0.02, 0.50), 0.96, 0.09, boxstyle="round,pad=0.01",
-                                  facecolor='#fffde7', edgecolor='#f9a825', linewidth=2, alpha=0.3)
-    ax.add_patch(migration_bg)
-    ax.text(0.04, 0.545, 'MIGRATION\n(Run Once)', fontsize=6, fontweight='bold',
-            color='#f9a825', alpha=0.7, rotation=90, va='center', ha='center')
-
-    draw_agent_box(ax, 0.30, 0.51, 0.40, 0.07,
-                   'MIGRATION AGENT (01)',
-                   'Validate CSVs → Dry Run → Confirm → Import (single transaction) → Verify',
-                   '#f9a825', text_color='#1a1a2e', fontsize=9)
-
-    # ═══════════════════════════════════════
-    # BUILD LAYER (phases)
-    # ═══════════════════════════════════════
-    build_bg = FancyBboxPatch((0.02, 0.03), 0.96, 0.46, boxstyle="round,pad=0.01",
-                              facecolor='#f5f5f5', edgecolor='#666', linewidth=2, alpha=0.3)
-    ax.add_patch(build_bg)
-    ax.text(0.04, 0.26, 'BUILD LAYER\n(Per Module)', fontsize=7, fontweight='bold',
-            color='#666', alpha=0.7, rotation=90, va='center', ha='center')
-
-    # Phase boxes - Row 1
-    draw_phase_box(ax, 0.07, 0.36, 0.20, 0.11,
-                   'PHASE 1: Foundation',
-                   'F1: DB Schema\nF2: Chart of Accts\nF3: General Ledger\nF4: Client Mgmt\nF5: Auth/JWT',
-                   '#43a047')
-
-    draw_phase_box(ax, 0.29, 0.36, 0.17, 0.11,
-                   'PHASE 2: Transactions',
-                   'T1: AP\nT2: AR/Invoicing\nT3: Bank Rec\nT4: Approval Flow',
-                   '#e53935')
-
-    draw_phase_box(ax, 0.48, 0.36, 0.14, 0.11,
-                   'PHASE 3: Documents',
-                   'D1: Upload\nD2: Viewer\nD3: Search',
-                   '#8e24aa')
-
-    draw_phase_box(ax, 0.64, 0.36, 0.30, 0.11,
-                   'PHASE 4: Payroll (GA-specific)',
-                   'P1: Employees  P2: GA Withholding  P3: GA SUTA\nP4: Federal Tax  P5: Pay Stubs  P6: Payroll Gate',
-                   '#d81b60')
-
-    # Phase boxes - Row 2
-    draw_phase_box(ax, 0.07, 0.18, 0.40, 0.11,
-                   'PHASE 5: Tax Form Exports',
-                   'X1: G-7    X2: Form 500   X3: Form 600   X4: ST-3\nX5: Sched C   X6: 1120-S   X7: 1120   X8: 1065   X9: Checklist',
-                   '#1565c0')
-
-    draw_phase_box(ax, 0.49, 0.18, 0.22, 0.11,
-                   'PHASE 6: Reporting',
-                   'R1: P&L\nR2: Balance Sheet\nR3: Cash Flow\nR4: PDF Export\nR5: Dashboard',
-                   '#ef6c00', text_color='white')
-
-    draw_phase_box(ax, 0.73, 0.18, 0.21, 0.11,
-                   'PHASE 7: Operations',
-                   'O1: Audit Viewer\nO2: Backup\nO3: Restore\nO4: Health Check',
-                   '#6a1b9a')
-
-    # ═══════════════════════════════════════
-    # ARROWS: CEO → Coordination Files
-    # ═══════════════════════════════════════
-    ax.annotate('', xy=(0.50, 0.78), xytext=(0.50, 0.83),
-                arrowprops=dict(arrowstyle='<->', color='#ff6b35', lw=2))
-
-    # Research Agent → Coordination Files
-    ax.annotate('', xy=(0.17, 0.74), xytext=(0.17, 0.695),
-                arrowprops=dict(arrowstyle='->', color='#4ecdc4', lw=1.5))
-
-    # Review Agent → OPEN_ISSUES
-    ax.annotate('', xy=(0.44, 0.755), xytext=(0.375, 0.695),
-                arrowprops=dict(arrowstyle='->', color='#26a69a', lw=1,
-                               connectionstyle='arc3,rad=0.2', linestyle='dashed'))
-
-    # Research → Review (dotted)
-    ax.annotate('', xy=(0.29, 0.655), xytext=(0.27, 0.655),
-                arrowprops=dict(arrowstyle='->', color='#999', lw=1,
-                               linestyle='dotted'))
-
-    # GA Tax Research → Payroll phases
-    ax.annotate('', xy=(0.75, 0.47), xytext=(0.59, 0.615),
-                arrowprops=dict(arrowstyle='->', color='#00897b', lw=1.5,
-                               connectionstyle='arc3,rad=-0.2'))
-
-    # QB Research → Migration
-    ax.annotate('', xy=(0.70, 0.575), xytext=(0.83, 0.615),
-                arrowprops=dict(arrowstyle='->', color='#00796b', lw=1.5,
-                               connectionstyle='arc3,rad=0.3'))
-
-    # CEO → Build Layer
-    ax.annotate('', xy=(0.50, 0.47), xytext=(0.65, 0.83),
-                arrowprops=dict(arrowstyle='->', color='#ff6b35', lw=1.5,
-                               connectionstyle='arc3,rad=0.3', linestyle='dashed'))
-    ax.text(0.62, 0.64, 'assigns\ntasks', fontsize=6, color='#ff6b35',
-            ha='center', style='italic', alpha=0.8)
-
-    # Phase flow arrows
-    # Phase 1 → Phase 2
-    ax.annotate('', xy=(0.29, 0.42), xytext=(0.27, 0.42),
-                arrowprops=dict(arrowstyle='->', color='#333', lw=1.5))
-    # Phase 1 → Phase 3
-    ax.annotate('', xy=(0.48, 0.44), xytext=(0.27, 0.46),
-                arrowprops=dict(arrowstyle='->', color='#333', lw=1,
-                               connectionstyle='arc3,rad=-0.2'))
-    # Phase 2 → Phase 5
-    ax.annotate('', xy=(0.27, 0.29), xytext=(0.375, 0.36),
-                arrowprops=dict(arrowstyle='->', color='#333', lw=1,
-                               connectionstyle='arc3,rad=0.2'))
-    # Phase 4 → Phase 5
-    ax.annotate('', xy=(0.35, 0.29), xytext=(0.64, 0.36),
-                arrowprops=dict(arrowstyle='->', color='#333', lw=1,
-                               connectionstyle='arc3,rad=0.3'))
-    # Phase 5 → Phase 6
-    ax.annotate('', xy=(0.49, 0.24), xytext=(0.47, 0.24),
-                arrowprops=dict(arrowstyle='->', color='#333', lw=1))
-    # Phase 1 → Phase 7
-    ax.annotate('', xy=(0.73, 0.24), xytext=(0.27, 0.40),
-                arrowprops=dict(arrowstyle='->', color='#333', lw=1,
-                               connectionstyle='arc3,rad=-0.3'))
-
-    # ═══════════════════════════════════════
-    # LEGEND
-    # ═══════════════════════════════════════
-    legend_y = 0.06
-    ax.text(0.08, legend_y + 0.06, 'LEGEND', fontsize=8, fontweight='bold', color='#333')
-
-    legend_items = [
-        ('#ff6b35', 'Orchestrator'),
-        ('#4ecdc4', 'Research (run once)'),
-        ('#f9a825', 'Migration (run once)'),
-        ('#43a047', 'Builder (per module)'),
+    # -- Research agents --
+    ra = [
+        (2, 8, '00', 'Research', '#16a085',
+         ['SETUP.md', '001_schema.sql', 'MIGRATION_SPEC.md', 'Folder structure']),
+        (5, 8, '03', 'Review', '#1abc9c',
+         ['QA report', 'Issue flags']),
+        (8, 8, '04', 'GA Tax', '#0e6655',
+         ['Withholding tables', 'SUTA rates', 'Federal rates', 'Form specs']),
     ]
-    for i, (color, label) in enumerate(legend_items):
-        box = FancyBboxPatch((0.08 + i * 0.12, legend_y), 0.02, 0.015,
-                             boxstyle="round,pad=0.002", facecolor=color,
-                             edgecolor='#333', linewidth=0.5)
-        ax.add_patch(box)
-        ax.text(0.105 + i * 0.12, legend_y + 0.007, label,
-                fontsize=6, va='center', color='#333')
+    for ax2, ay, lbl, nm, clr, items in ra:
+        branch(ax, rx, ry-0.5, ax2, ay+0.42, '#1abc9c', lw=2.5)
+        node(ax, ax2, ay, lbl, clr, r=0.42, fs=18)
+        ax.text(ax2, ay-0.6, nm, ha='center', fontsize=13, color=clr, fontweight='bold')
+        # Items below agent
+        for i, item in enumerate(items):
+            iy = ay - 1.0 - i*0.36
+            ax.add_patch(plt.Circle((ax2-0.8, iy), 0.05, fc=clr, ec='none', zorder=6, alpha=0.7))
+            ax.text(ax2-0.65, iy, item, fontsize=12, va='center', color='#444')
+            twig(ax, ax2, ay-0.42, ax2-0.6, iy, clr)
 
-    # Arrow legend
-    ax.text(0.58, legend_y + 0.007, '── data flow    - - - task assignment    ··· QA review',
-            fontsize=6, color='#666', va='center', family='monospace')
+    # -- Migration agents --
+    ma = [
+        (12, 8, '05', 'QB Fmt', '#d4ac0d',
+         ['Export formats', 'Column mappings', 'Sample CSVs']),
+        (16, 8, '01', 'Migrate', '#e67e22',
+         ['M1 CSV Parser', 'M2 Client Splitter', 'M3 CoA Mapper',
+          'M4 Txn Import', 'M5 Invoice Import', 'M6 Payroll Import', 'M7 Audit Rpt']),
+    ]
+    for ax2, ay, lbl, nm, clr, items in ma:
+        branch(ax, mx, my-0.5, ax2, ay+0.42, '#f39c12', lw=2.5)
+        node(ax, ax2, ay, lbl, clr, r=0.42, fs=18)
+        ax.text(ax2, ay-0.6, nm, ha='center', fontsize=13, color=clr, fontweight='bold')
+        for i, item in enumerate(items):
+            iy = ay - 1.0 - i*0.36
+            ax.add_patch(plt.Circle((ax2-0.8, iy), 0.05, fc=clr, ec='none', zorder=6, alpha=0.7))
+            ax.text(ax2-0.65, iy, item, fontsize=12, va='center', color='#444')
+            twig(ax, ax2, ay-0.42, ax2-0.6, iy, clr)
 
-    # Stats box
-    stats_bg = FancyBboxPatch((0.73, legend_y - 0.02), 0.22, 0.08,
-                              boxstyle="round,pad=0.01", facecolor='white',
-                              edgecolor='#ccc', linewidth=1)
-    ax.add_patch(stats_bg)
-    ax.text(0.84, legend_y + 0.045, '6 Agent Types • 34 Modules • 7 Phases',
-            ha='center', fontsize=7, fontweight='bold', color='#333')
-    ax.text(0.84, legend_y + 0.015, 'Coordination via shared markdown files\nNo direct agent-to-agent communication',
-            ha='center', fontsize=5.5, color='#666')
+    # -- Builder phase agents --
+    phases = [
+        (19.5, 8, 'P1', 'Foundation', '#27ae60',
+         ['F1 Schema', 'F2 CoA', 'F3 GL', 'F4 Clients', 'F5 Auth']),
+        (22, 8, 'P2', 'Transactions', '#c0392b',
+         ['T1 AP', 'T2 AR', 'T3 Bank Rec', 'T4 Approvals']),
+        (24.5, 8, 'P3', 'Documents', '#8e44ad',
+         ['D1 Upload', 'D2 Viewer', 'D3 Search']),
+        (27, 8, 'P4', 'Payroll', '#e91e63',
+         ['P1 Employees', 'P2 GA W/H', 'P3 SUTA', 'P4 Federal', 'P5 Stubs', 'P6 Gate']),
+    ]
+    for px, py, plbl, pnm, pclr, pitems in phases:
+        branch(ax, bx, by-0.5, px, py+0.42, '#3498db', lw=2.5)
+        node(ax, px, py, plbl, pclr, r=0.38, fs=16)
+        ax.text(px, py-0.55, pnm, ha='center', fontsize=11, color=pclr, fontweight='bold')
+        for i, item in enumerate(pitems):
+            iy = py - 0.95 - i*0.34
+            ax.add_patch(plt.Circle((px-0.6, iy), 0.04, fc=pclr, ec='none', zorder=6, alpha=0.7))
+            ax.text(px-0.45, iy, item, fontsize=11, va='center', color='#444')
+            twig(ax, px, py-0.38, px-0.45, iy, pclr)
 
-    plt.tight_layout(pad=0.5)
-    output_path = '/Users/edwardahrens/tax/docs/diagrams/agent_architecture.png'
-    plt.savefig(output_path, dpi=200, bbox_inches='tight',
-                facecolor='#fafafa', edgecolor='none')
-    print(f'Diagram saved to: {output_path}')
+    # Phases 5-7 in a second row below
+    phases2 = [
+        (19.5, 3.5, 'P5', 'Tax Forms', '#2980b9',
+         ['X1 G-7', 'X2 F-500', 'X3 F-600', 'X4 ST-3', 'X5 Sch C',
+          'X6 1120-S', 'X7 1120', 'X8 1065', 'X9 Checklist']),
+        (23, 3.5, 'P6', 'Reporting', '#e67e22',
+         ['R1 P&L', 'R2 Bal Sheet', 'R3 Cash Flow', 'R4 PDF', 'R5 Dashboard']),
+        (26, 3.5, 'P7', 'Operations', '#6c3483',
+         ['O1 Audit', 'O2 Backup', 'O3 Restore', 'O4 Health']),
+    ]
+    for px, py, plbl, pnm, pclr, pitems in phases2:
+        branch(ax, bx, by-0.5, px, py+0.42, '#3498db', lw=2)
+        node(ax, px, py, plbl, pclr, r=0.38, fs=16)
+        ax.text(px, py-0.55, pnm, ha='center', fontsize=11, color=pclr, fontweight='bold')
+        for i, item in enumerate(pitems):
+            iy = py - 0.95 - i*0.34
+            ax.add_patch(plt.Circle((px-0.6, iy), 0.04, fc=pclr, ec='none', zorder=6, alpha=0.7))
+            ax.text(px-0.45, iy, item, fontsize=11, va='center', color='#444')
+            twig(ax, px, py-0.38, px-0.45, iy, pclr)
+
+    # ═════════════════════════════
+    # LEGEND (bottom left)
+    # ═════════════════════════════
+    ax.text(0.5, 1.8, 'LEGEND', fontsize=16, fontweight='bold', color='#555')
+    for i, (clr, lbl) in enumerate([
+        ('#e74c3c', 'CEO Orchestrator'),
+        ('#1abc9c', 'Research Team (4)'),
+        ('#f39c12', 'Migration Team (2)'),
+        ('#3498db', 'Builder Agents (43)'),
+    ]):
+        ly = 1.2 - i*0.45
+        ax.add_patch(plt.Circle((0.7, ly), 0.15, fc=clr, ec='white', lw=2, zorder=10))
+        ax.text(1.0, ly, lbl, va='center', fontsize=14, color='#444')
+
+    plt.subplots_adjust(left=0.01, right=0.99, top=0.97, bottom=0.01)
+    out = '/Users/edwardahrens/tax/docs/diagrams/agent_architecture.png'
+    plt.savefig(out, dpi=72, bbox_inches='tight', facecolor='#fcfcfc', edgecolor='none')
+    print(f'Saved to: {out}')
     plt.close()
 
 

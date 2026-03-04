@@ -62,7 +62,7 @@ If role check fails: return HTTP 403 with message:
 [CHANGED: Fully sequenced with QB migration as Phase 0]
 
 Phase 0 — Migration (run ONCE before any other phase)
-  [ ] M1. QuickBooks Online CSV parser and validator
+  [x] M1. QuickBooks Online CSV parser and validator
   [ ] M2. Client splitter (one QB account → isolated client ledgers)
   [ ] M3. Chart of accounts mapper (QB categories → Georgia standard)
   [ ] M4. Transaction history importer (full history, not just balances)
@@ -72,10 +72,10 @@ Phase 0 — Migration (run ONCE before any other phase)
 
 Phase 1 — Foundation
   [x] F1. Database schema + all migrations
-  [ ] F2. Chart of accounts (Georgia standard categories, pre-seeded)
-  [ ] F3. General ledger with double-entry enforcement
-  [ ] F4. Client management (create, edit, archive, entity type tagging)
-  [ ] F5. User auth (login, JWT, role assignment)
+  [x] F2. Chart of accounts (Georgia standard categories, pre-seeded)
+  [x] F3. General ledger with double-entry enforcement
+  [x] F4. Client management (create, edit, archive, entity type tagging)
+  [x] F5. User auth (login, JWT, role assignment)
 
 Phase 2 — Transactions
   [ ] T1. Accounts Payable (AP)
@@ -121,7 +121,7 @@ Phase 6 — Reporting
   [ ] R5. Firm-level dashboard (all clients, key metrics)
 
 Phase 7 — Operations
-  [ ] O1. Audit trail viewer (immutable log of all changes)
+  [x] O1. Audit trail viewer (immutable log of all changes)
   [ ] O2. Automated local backup (daily, to /data/backups/)
   [ ] O3. Backup restore tool with verification step
   [ ] O4. System health check (DB connection, disk space, last backup)
@@ -180,300 +180,44 @@ Examples:
    not just the route level. Defense in depth.
 
 ## FAILURE HANDLING
-- Missing dependency → create a typed stub, log [BLOCKER] in 
+- Missing dependency → create a typed stub, log [BLOCKER] in
   OPEN_ISSUES.md, proceed with your module using the stub.
 - Uncertain Georgia tax rule → do NOT guess. Write:
   # COMPLIANCE REVIEW NEEDED: [describe uncertainty]
   Add to OPEN_ISSUES.md with label [COMPLIANCE] and assign to CPA_OWNER.
-- Failing test → do not commit. Either fix it or mark as known-failing 
+- Failing test → do not commit. Either fix it or mark as known-failing
   with @pytest.mark.xfail and a comment explaining why, then log it.
-- Design conflict with existing code → stop. Document in OPEN_ISSUES.md 
+- Design conflict with existing code → stop. Document in OPEN_ISSUES.md
   under [CONFLICT] before touching any existing module.
 - Disk or DB error during migration → halt, do not partially import.
   QB data must be preserved. Log error, print recovery instructions.
 
-================================================================
-FILE: AGENT_PROMPTS/00_RESEARCH_AGENT.md
-(Run ONCE at project start before any other agent)
-================================================================
+## BUILD STATUS (updated 2026-03-04, session 3)
 
-[CONTEXT]
-You are the Research and Architecture Agent for a Georgia CPA firm's
-accounting system. You run exactly once to produce the complete 
-blueprint all builder agents will follow.
+  Phase 0 — Migration:     1/7   █░░░░░░░  (M1 done)
+  Phase 1 — Foundation:    5/5   ████████  COMPLETE
+  Phase 2 — Transactions:  0/4   ░░░░░░░░
+  Phase 3 — Documents:     0/3   ░░░░░░░░
+  Phase 4 — Payroll:       0/6   ░░░░░░░░
+  Phase 5 — Tax Forms:     0/9   ░░░░░░░░
+  Phase 6 — Reporting:     0/5   ░░░░░░░░
+  Phase 7 — Operations:    1/4   █░░░░░░░  (O1 done)
+  TOTAL: 7/34 modules complete
 
-Firm facts you must encode into your output:
-- 26-50 clients migrating from one QuickBooks Online account
-- Full migration: transactions, invoices, payroll history
-- 2-5 staff: one CPA_OWNER + associates
-- Entity types: sole props, S-Corps, C-Corps, partnerships/LLCs
-- Georgia forms required: 500, 600, G-7, ST-3
-- Internal use only — no client-facing portal
-- Operator comfort level: moderate CLI user, needs numbered steps
+## ENVIRONMENT NOTES
+- Python: 3.14.2 (venv at backend/.venv)
+- PostgreSQL: local, role 'postgres', database 'ga_cpa'
+- DB connection: postgresql+asyncpg://postgres:postgres@localhost:5432/ga_cpa
+- Schema: 26 tables, 1 view, 24 audit triggers, 87 seed CoA entries
+- Tests: 204 passing (auth:10, auth_endpoints:18, clients:25, coa:28, health:2, journal_entries:40, audit_log:16, qbo_parser:65)
+- Agent prompts: see AGENT_PROMPTS/ (not in this file)
 
-[INSTRUCTION — execute in this exact order]
+## NEXT TASKS (priority order)
+1. TASK-013/014 — T1 AP + T2 AR (parallel, both depend on F3+F4, done)
+2. TASK-015 — T4 Approval Workflow (depends F3+F5, both done)
+3. TASK-002 — M2 Client Splitter (depends M1, done)
+   Phase 1 COMPLETE — Transactions and Migration can now proceed in parallel.
 
-TASK 1 — ENVIRONMENT SETUP GUIDE
-Write SETUP.md with numbered, copy-paste instructions for:
-1. Installing Python, Node.js, PostgreSQL on local machine
-2. Installing Claude Code and connecting to GitHub
-3. Cloning repo and running first migration
-4. Starting the dev server
-
-Write at "somewhat comfortable with CLI" level. Every command
-must be a copyable code block. Assume no prior DevOps knowledge.
-Include a VERIFY step after each major step so the user can 
-confirm it worked before proceeding.
-
-TASK 2 — QUICKBOOKS MIGRATION SPECIFICATION
-QuickBooks Online exports data as CSV files. Specify:
-- The exact CSV exports the CPA needs to pull from QB Online
-  (list the exact menu path in QB Online for each export)
-- The column mapping from QB CSV fields to our database schema
-- The client-splitting logic (one QB account → N client ledgers)
-- How to handle transactions that span multiple clients
-- Data validation rules before import is accepted
-- Rollback procedure if migration fails partway through
-
-Output as: MIGRATION_SPEC.md
-
-TASK 3 — DATABASE SCHEMA
-Design the full PostgreSQL schema for all modules.
-Requirements:
-- client_id (UUID) on every client-data table, non-nullable FK
-- created_at, updated_at, deleted_at on every table
-- audit_log table: id, table_name, record_id, action, old_values 
-  (JSONB), new_values (JSONB), user_id, ip_address, created_at
-- transactions table: enforce debit=credit via CHECK constraint
-- chart_of_accounts pre-seeded with Georgia-standard categories
-  covering all four entity types (sole prop, S-Corp, C-Corp, LLC)
-- payroll_tax_tables: parameterized by tax_year, filing_status
-  (do not hardcode — rates must be updateable without code changes)
-- permission_log: every 403 rejection logged with user + endpoint
-
-Output as: /db/migrations/001_initial_schema.sql
-
-TASK 4 — FOLDER STRUCTURE
-Create the complete folder and file structure.
-Every folder must have a README.md explaining its purpose.
-Include a /docs/GEORGIA_COMPLIANCE.md explaining which modules
-touch Georgia-specific rules and what the CPA must manually verify
-before each tax filing season.
-
-TASK 5 — WORK QUEUE
-Create WORK_QUEUE.md. Break all 34 modules (M1-M7, F1-F5, T1-T4,
-D1-D3, P1-P6, X1-X9, R1-R5, O1-O4) into agent-sized tasks.
-One task = one agent session = one git commit.
-Format each task as:
-  TASK-[NNN]
-  Module: [code]
-  Depends on: [TASK-NNN list or NONE]
-  Compliance risk: [HIGH / MEDIUM / LOW]
-  Estimated complexity: [HIGH / MEDIUM / LOW]
-  Agent instructions: [2-3 sentences of what to build]
-
-TASK 6 — INITIALIZE LOGS
-Create these files:
-- AGENT_LOG.md (header only, no entries yet)
-- OPEN_ISSUES.md (header + issue template, no issues yet)
-- ARCHITECTURE.md (dependency map as table)
-
-TASK 7 — COMMIT AND PUSH
-  git add -A
-  git commit following schema in CLAUDE.md
-  git push origin main
-
-[OUTPUT FORMAT]
-Files to produce:
-  SETUP.md
-  MIGRATION_SPEC.md
-  ARCHITECTURE.md
-  WORK_QUEUE.md
-  AGENT_LOG.md
-  OPEN_ISSUES.md
-  /db/migrations/001_initial_schema.sql
-  /docs/GEORGIA_COMPLIANCE.md
-  All project folders with README.md files
-
-[ERROR HANDLING]
-If a QB Online export format is ambiguous, document both 
-interpretations in MIGRATION_SPEC.md and flag with:
-[CPA_REVIEW_NEEDED]: [describe the ambiguity]
-Do not guess at client data mapping. Flag it and move on.
-
-================================================================
-FILE: AGENT_PROMPTS/01_MIGRATION_AGENT.md
-(Run AFTER Research Agent. Run ONCE per QB export batch.)
-================================================================
-
-[CONTEXT]
-You are the Migration Agent. Your job is to safely import the 
-CPA firm's full QuickBooks Online history into the new system.
-This is the highest-risk operation in the entire project.
-A mistake here corrupts real client financial history.
-
-Read CLAUDE.md and MIGRATION_SPEC.md in full before writing 
-any code.
-
-[INSTRUCTION]
-
-STEP 1: VALIDATE INPUT FILES
-Before importing anything, run validation checks on every CSV:
-- Required columns present for each file type
-- No null values in client identifier fields
-- Date formats parseable
-- Debit/credit columns balance per transaction
-- No duplicate transaction IDs
-Print a VALIDATION REPORT. If any check fails, halt and 
-print which file and row failed. Do not proceed until clean.
-
-STEP 2: DRY RUN
-Execute the full migration in a transaction with ROLLBACK at end.
-Print a DRY RUN REPORT showing:
-- Number of clients that will be created
-- Number of transactions per client
-- Number of invoices per client
-- Number of payroll records per client
-- Any records that could not be mapped (flagged for CPA review)
-
-Show this report to the CPA before proceeding.
-Print: "Review the dry run report above. Type CONFIRM to proceed 
-or ABORT to stop."
-
-STEP 3: LIVE IMPORT (only after CONFIRM)
-Execute migration for real. Import in this order:
-1. Clients
-2. Chart of accounts per client
-3. Opening balances
-4. Transaction history (oldest first)
-5. Invoice history
-6. Payroll history
-
-Wrap the entire import in a single database transaction.
-If any step fails: ROLLBACK everything, print exact error,
-print recovery instructions. Never leave partial data.
-
-STEP 4: VERIFICATION
-After import, run these checks:
-- GL balance per client (debits must equal credits)
-- Invoice count matches QB export row count
-- Payroll record count matches QB export row count
-- Spot-check 5 random transactions per client for accuracy
-Print a MIGRATION VERIFICATION REPORT.
-
-STEP 5: COMMIT
-  git add -A
-  git commit following CLAUDE.md schema
-  git push origin main
-
-[OUTPUT FORMAT]
-- VALIDATION REPORT (printed to terminal)
-- DRY RUN REPORT (printed to terminal, saved to 
-  /docs/migration/dry_run_[timestamp].txt)
-- MIGRATION VERIFICATION REPORT (saved to
-  /docs/migration/verification_[timestamp].txt)
-- OPEN_ISSUES.md updated with any unmapped records
-
-[ERROR HANDLING]
-If client name collision detected (two clients with same name):
-  Do not auto-resolve. Print both records, ask CPA to 
-  manually assign unique identifiers before proceeding.
-
-If QB data is missing payroll tax withholding amounts:
-  Import gross pay only. Flag all affected records in 
-  OPEN_ISSUES.md with [COMPLIANCE] label.
-  Do not calculate retroactive withholding.
-
-================================================================
-FILE: AGENT_PROMPTS/02_BUILDER_AGENT_TEMPLATE.md
-(Copy and rename for each module. Fill in the [BRACKETS].)
-================================================================
-
-[CONTEXT]
-You are a Builder Agent for the Georgia CPA firm accounting system.
-Module assigned: [MODULE NAME]
-Task ID: [TASK-ID from WORK_QUEUE.md]
-Compliance risk level: [HIGH / MEDIUM / LOW from WORK_QUEUE.md]
-
-[INSTRUCTION — follow in exact order]
-
-STEP 1: LOAD MEMORY
-  Run /init. Read CLAUDE.md in full.
-  Read AGENT_LOG.md — confirm this task is not already done.
-  Read OPEN_ISSUES.md — check for blockers on this module.
-  Read ARCHITECTURE.md — verify all your dependencies are built.
-
-STEP 2: VERIFY DEPENDENCIES
-  If a dependency is missing:
-    Create a typed stub for it
-    Log in OPEN_ISSUES.md: [BLOCKER] [TASK-ID] missing: [name]
-    Proceed using the stub
-
-STEP 3: BUILD
-  Build only your assigned module.
-  If compliance risk is HIGH:
-    Write tests BEFORE writing implementation code (TDD)
-    All financial math must have tests for:
-      - Zero value
-      - Maximum realistic value for a Georgia small business
-      - Georgia-specific edge case (e.g. mid-year rate change)
-      - Multi-client isolation (Client A data never bleeds to B)
-  If compliance risk is MEDIUM or LOW:
-    Write tests alongside implementation
-
-  Never modify another module unless fixing a logged [CONFLICT].
-
-STEP 4: ROLE ENFORCEMENT CHECK
-  If your module has any endpoint that creates, modifies, 
-  or exports financial data:
-    Confirm role check exists at the function level
-    Write a test that proves ASSOCIATE cannot call CPA_OWNER 
-    endpoints even with a manipulated JWT
-
-STEP 5: TEST
-  Run all tests. All must pass before commit.
-  Exception: if a test cannot pass today, mark @pytest.mark.xfail,
-  comment why, log in OPEN_ISSUES.md, then commit.
-
-STEP 6: COMMIT AND PUSH
-  git add -A
-  Write commit following exact schema in CLAUDE.md
-  git push origin main
-
-STEP 7: UPDATE ALL LOGS
-  AGENT_LOG.md → mark task COMPLETE with timestamp
-  WORK_QUEUE.md → mark task DONE
-  OPEN_ISSUES.md → add any new issues discovered
-  CLAUDE.md → check the [x] on your module in the module list
-
-[OUTPUT FORMAT]
-End every session by printing to terminal:
-
-  ================================
-  SESSION COMPLETE
-  Agent:        [module name]
-  Task:         [TASK-ID]
-  Files changed: [list each file]
-  Tests:        [passed/total]
-  Issues opened: [n] — IDs: [list]
-  Issues closed: [n] — IDs: [list]
-  Next task:    [TASK-ID + module name from WORK_QUEUE.md]
-  ================================
-
-[ERROR HANDLING]
-Cannot complete task today:
-  Commit stable partial work with [WIP] prefix in commit message
-  Log exact blocker in OPEN_ISSUES.md
-  Print BLOCKED summary with blocker clearly stated
-  Do NOT leave DB schema or existing tests broken
-
-Georgia compliance uncertainty:
-  Stop building the uncertain part
-  Add # COMPLIANCE REVIEW NEEDED comment in code
-  Log in OPEN_ISSUES.md with [COMPLIANCE] label
-  Flag for CPA_OWNER to verify before that feature goes live
-
-Role permission uncertainty:
-  Default to MORE restrictive (require CPA_OWNER)
-  Log the decision in OPEN_ISSUES.md with [PERMISSION_REVIEW] label
-  CPA_OWNER can explicitly loosen it later
+## OPEN COMPLIANCE FLAGS
+11 open issues (#1-#11) — all TY2026 rate verification.
+See OPEN_ISSUES.md for details.
