@@ -62,24 +62,49 @@ def register_routers(app: FastAPI) -> None:
         tags=["invoices"],
     )
 
-    # --- Phase 3 routers (Document Management) ---
-    # from app.routers.documents import router as documents_router
-    # app.include_router(documents_router, prefix="/api/v1/documents", tags=["documents"])
+    # --- Phase 2 routers (Bank Reconciliation) ---
+    from app.routers.bank_reconciliation import router as bank_recon_router
+    app.include_router(
+        bank_recon_router,
+        prefix="/api/v1/clients/{client_id}/bank-accounts",
+        tags=["bank-reconciliation"],
+    )
 
-    # --- Phase 4 routers (Payroll) ---
-    # from app.routers.payroll import router as payroll_router
-    # app.include_router(payroll_router, prefix="/api/v1/payroll", tags=["payroll"])
+    # --- Phase 3 routers (Document Management) ---
+    from app.routers.documents import router as documents_router
+    app.include_router(
+        documents_router,
+        prefix="/api/v1/clients/{client_id}/documents",
+        tags=["documents"],
+    )
+
+    # --- Phase 4 routers (Payroll — Employee Records) ---
+    from app.routers.employees import router as employees_router
+    app.include_router(
+        employees_router,
+        prefix="/api/v1/clients/{client_id}/employees",
+        tags=["employees"],
+    )
+
+    # --- Phase 4 routers (Payroll — Runs + Approval) ---
+    from app.routers.payroll import router as payroll_router
+    app.include_router(
+        payroll_router,
+        prefix="/api/v1/clients/{client_id}/payroll",
+        tags=["payroll"],
+    )
 
     # --- Phase 5 routers (Tax Exports) ---
-    # from app.routers.tax_exports import router as tax_router
-    # app.include_router(tax_router, prefix="/api/v1/tax", tags=["tax-exports"])
+    from app.routers.tax_exports import router as tax_router
+    app.include_router(tax_router, prefix="/api/v1/tax", tags=["tax-exports"])
 
     # --- Phase 6 routers (Reporting) ---
-    # from app.routers.reports import router as reports_router
-    # app.include_router(reports_router, prefix="/api/v1/reports", tags=["reports"])
+    from app.routers.reports import router as reports_router
+    app.include_router(reports_router, prefix="/api/v1/reports", tags=["reports"])
 
     # --- Phase 7 routers (Operations) ---
     from app.routers.audit_log import router as audit_log_router
     app.include_router(audit_log_router, prefix="/api/v1/audit-log", tags=["audit-log"])
 
-    pass  # Remove when all routers are added
+    from app.routers.operations import router as operations_router
+    app.include_router(operations_router, prefix="/api/v1/operations", tags=["operations"])

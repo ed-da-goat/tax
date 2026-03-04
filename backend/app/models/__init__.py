@@ -19,6 +19,11 @@ from app.models.journal_entry import JournalEntry, JournalEntryLine, JournalEntr
 from app.models.vendor import Vendor
 from app.models.bill import Bill, BillLine, BillPayment, BillStatus
 from app.models.invoice import Invoice, InvoiceLine, InvoicePayment, InvoiceStatus
+from app.models.bank_account import BankAccount, BankTransaction, Reconciliation, BankTransactionType, ReconciliationStatus
+from app.models.document import Document
+from app.models.employee import Employee, FilingStatus, PayType
+from app.models.payroll import PayrollRun, PayrollItem, PayrollRunStatus
+from app.models.payroll_tax_table import PayrollTaxTable
 
 __all__ = [
     "Base", "TimestampMixin", "SoftDeleteMixin",
@@ -30,4 +35,9 @@ __all__ = [
     "Vendor",
     "Bill", "BillLine", "BillPayment", "BillStatus",
     "Invoice", "InvoiceLine", "InvoicePayment", "InvoiceStatus",
+    "BankAccount", "BankTransaction", "Reconciliation", "BankTransactionType", "ReconciliationStatus",
+    "Document",
+    "Employee", "FilingStatus", "PayType",
+    "PayrollRun", "PayrollItem", "PayrollRunStatus",
+    "PayrollTaxTable",
 ]
