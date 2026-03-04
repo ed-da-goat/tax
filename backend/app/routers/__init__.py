@@ -34,6 +34,9 @@ def register_routers(app: FastAPI) -> None:
     from app.routers.chart_of_accounts import router as coa_router
     app.include_router(coa_router, prefix="/api/v1", tags=["chart-of-accounts"])
 
+    from app.routers.journal_entries import router as je_router
+    app.include_router(je_router, prefix="/api/v1", tags=["journal-entries"])
+
     # --- Phase 2 routers (Transactions) ---
     # from app.routers.ap import router as ap_router
     # app.include_router(ap_router, prefix="/api/v1/ap", tags=["accounts-payable"])
@@ -53,5 +56,9 @@ def register_routers(app: FastAPI) -> None:
     # --- Phase 6 routers (Reporting) ---
     # from app.routers.reports import router as reports_router
     # app.include_router(reports_router, prefix="/api/v1/reports", tags=["reports"])
+
+    # --- Phase 7 routers (Operations) ---
+    from app.routers.audit_log import router as audit_log_router
+    app.include_router(audit_log_router, prefix="/api/v1/audit-log", tags=["audit-log"])
 
     pass  # Remove when all routers are added

@@ -14,10 +14,14 @@ from app.models.client import Client, EntityType
 from app.models.user import User
 from app.models.permission_log import PermissionLog
 from app.models.chart_of_accounts import ChartOfAccounts
+from app.models.audit_log import AuditLog, AuditAction
+from app.models.journal_entry import JournalEntry, JournalEntryLine, JournalEntryStatus
 
 __all__ = [
     "Base", "TimestampMixin", "SoftDeleteMixin",
     "Client", "EntityType",
     "User", "PermissionLog",
     "ChartOfAccounts",
+    "AuditLog", "AuditAction",
+    "JournalEntry", "JournalEntryLine", "JournalEntryStatus",
 ]
