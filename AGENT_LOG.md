@@ -99,3 +99,19 @@ All agent sessions are recorded here. Each entry follows the format below.
 - **Issues opened:** NONE
 - **Issues closed:** NONE
 - **Notes:** Phase 1 (Foundation) is now COMPLETE (F1-F5 all done). F3 General Ledger includes triple-layer double-entry enforcement (Pydantic schema, service layer, DB trigger), full approval workflow (DRAFT→PENDING→POSTED→VOID), and automatic reversing entries on void. M1 QB CSV Parser handles all 8 QBO export types with error collection, currency formatting, BOM handling, and alternate column names. O1 Audit Trail Viewer is read-only with filters and record history. Next: T1/T2 (AP/AR), T4 (Approval Workflow), M2 (Client Splitter) — all dependencies now satisfied.
+
+### 2026-03-04 — CEO ORCHESTRATOR — Session 4
+- **Task ID:** TASK-013 (T1), TASK-014 (T2), TASK-016 (T4), TASK-002 (M2) — parallel build
+- **Status:** COMPLETE
+- **Files changed:**
+  - backend/app/models/vendor.py, bill.py, invoice.py (NEW)
+  - backend/app/schemas/vendor.py, bill.py, invoice.py, approval.py (NEW)
+  - backend/app/services/vendor.py, bill.py, invoice.py, approval.py (NEW)
+  - backend/app/services/migration/client_splitter.py, splitting_report.py (NEW)
+  - backend/app/routers/vendors.py, bills.py, invoices.py, approvals.py (NEW)
+  - backend/tests/test_vendors.py, test_bills.py, test_invoices.py, test_approvals.py, test_client_splitter.py (NEW)
+  - backend/app/models/__init__.py, routers/__init__.py (MODIFIED)
+- **Tests:** 331/331 passed (127 new + 204 existing)
+- **Issues opened:** NONE
+- **Issues closed:** NONE
+- **Notes:** Four modules built in parallel using isolated worktrees. T1: full vendor CRUD + bill workflow (DRAFT→PENDING→APPROVED→PAID→VOID) with GL posting on approval. T2: invoice workflow (DRAFT→PENDING→SENT→PAID→OVERDUE→VOID) with GL posting on approve/payment/void, auto-calculated line amounts. T4: cross-client approval queue, batch approve/reject, rejection notes, approval history from audit log. M2: client splitter with case-insensitive name matching, unmatched record tracking, splitting report. Phase 2 is now 3/4 complete — only T3 (Bank Reconciliation) remains. Migration is 2/7 complete.

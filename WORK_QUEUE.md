@@ -20,11 +20,12 @@ All 34 modules broken into agent-sized tasks. One task = one agent session = one
 - **Status:** DONE (2026-03-04, CEO Orchestrator Session 3)
 - **Agent instructions:** Build a Python module that reads QuickBooks Online CSV exports, validates required columns and data types per MIGRATION_SPEC.md, and returns structured data or a validation error report. Must handle Chart of Accounts, Transaction Detail, Customer List, Invoice List, Payroll Summary, and Employee List CSVs.
 
-### TASK-002
+### TASK-002 ✓ DONE
 - **Module:** M2 — Client splitter
 - **Depends on:** TASK-001
 - **Compliance risk:** HIGH
 - **Estimated complexity:** MEDIUM
+- **Status:** DONE (2026-03-04, CEO Orchestrator Session 4)
 - **Agent instructions:** Build logic to split a single QB Online dataset into isolated per-client record sets using the client name/customer field as the primary key. Handle edge cases: unassigned transactions, transactions referencing multiple clients. Output one dataset per client_id.
 
 ### TASK-003
@@ -110,18 +111,20 @@ All 34 modules broken into agent-sized tasks. One task = one agent session = one
 
 ## Phase 2 — Transactions
 
-### TASK-013
+### TASK-013 ✓ DONE
 - **Module:** T1 — Accounts Payable
 - **Depends on:** TASK-010, TASK-011
 - **Compliance risk:** MEDIUM
 - **Estimated complexity:** MEDIUM
+- **Status:** DONE (2026-03-04, CEO Orchestrator Session 4)
 - **Agent instructions:** Build AP module: vendor management, bill entry (DRAFT → PENDING_APPROVAL → APPROVED → PAID), bill payment recording. Each bill posts to GL via journal entry. Client_id isolation on all queries.
 
-### TASK-014
+### TASK-014 ✓ DONE
 - **Module:** T2 — Accounts Receivable + invoicing
 - **Depends on:** TASK-010, TASK-011
 - **Compliance risk:** MEDIUM
 - **Estimated complexity:** MEDIUM
+- **Status:** DONE (2026-03-04, CEO Orchestrator Session 4)
 - **Agent instructions:** Build AR module: invoice creation (DRAFT → PENDING_APPROVAL → SENT → PAID), payment recording, overdue detection. Each invoice posts to GL. PDF invoice generation via WeasyPrint. Client_id isolation.
 
 ### TASK-015
@@ -131,11 +134,12 @@ All 34 modules broken into agent-sized tasks. One task = one agent session = one
 - **Estimated complexity:** HIGH
 - **Agent instructions:** Build bank reconciliation engine: import bank transactions, match against GL entries (auto-match + manual match), calculate reconciled vs statement balance, mark reconciliation complete. Client_id isolation.
 
-### TASK-016
+### TASK-016 ✓ DONE
 - **Module:** T4 — Transaction approval workflow
 - **Depends on:** TASK-010, TASK-012
 - **Compliance risk:** HIGH
 - **Estimated complexity:** MEDIUM
+- **Status:** DONE (2026-03-04, CEO Orchestrator Session 4)
 - **Agent instructions:** Build approval workflow: ASSOCIATE enters transaction (status: PENDING_APPROVAL), CPA_OWNER reviews and approves (status: POSTED) or rejects. Transactions do not affect GL until POSTED. Role check at function level, not just route.
 
 ---
