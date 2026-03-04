@@ -25,11 +25,14 @@ def register_routers(app: FastAPI) -> None:
         app.include_router(clients_router, prefix="/api/v1/clients", tags=["clients"])
     """
     # --- Phase 1 routers (Foundation) ---
-    # from app.routers.auth import router as auth_router
-    # app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
+    from app.routers.auth import router as auth_router
+    app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
 
-    # from app.routers.clients import router as clients_router
-    # app.include_router(clients_router, prefix="/api/v1/clients", tags=["clients"])
+    from app.routers.clients import router as clients_router
+    app.include_router(clients_router, prefix="/api/v1/clients", tags=["clients"])
+
+    from app.routers.chart_of_accounts import router as coa_router
+    app.include_router(coa_router, prefix="/api/v1", tags=["chart-of-accounts"])
 
     # --- Phase 2 routers (Transactions) ---
     # from app.routers.ap import router as ap_router
@@ -51,4 +54,4 @@ def register_routers(app: FastAPI) -> None:
     # from app.routers.reports import router as reports_router
     # app.include_router(reports_router, prefix="/api/v1/reports", tags=["reports"])
 
-    pass  # Remove when first router is added
+    pass  # Remove when all routers are added
