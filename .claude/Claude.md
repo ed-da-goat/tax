@@ -63,7 +63,7 @@ If role check fails: return HTTP 403 with message:
 
 Phase 0 — Migration (run ONCE before any other phase)
   [x] M1. QuickBooks Online CSV parser and validator
-  [ ] M2. Client splitter (one QB account → isolated client ledgers)
+  [x] M2. Client splitter (one QB account → isolated client ledgers)
   [ ] M3. Chart of accounts mapper (QB categories → Georgia standard)
   [ ] M4. Transaction history importer (full history, not just balances)
   [ ] M5. Invoice and AR history importer
@@ -78,10 +78,10 @@ Phase 1 — Foundation
   [x] F5. User auth (login, JWT, role assignment)
 
 Phase 2 — Transactions
-  [ ] T1. Accounts Payable (AP)
-  [ ] T2. Accounts Receivable (AR) + client invoicing
+  [x] T1. Accounts Payable (AP)
+  [x] T2. Accounts Receivable (AR) + client invoicing
   [ ] T3. Bank reconciliation engine
-  [ ] T4. Transaction approval workflow 
+  [x] T4. Transaction approval workflow 
           (ASSOCIATE enters → CPA_OWNER approves → posts to GL)
 
 Phase 3 — Document Management
@@ -192,31 +192,32 @@ Examples:
 - Disk or DB error during migration → halt, do not partially import.
   QB data must be preserved. Log error, print recovery instructions.
 
-## BUILD STATUS (updated 2026-03-04, session 3)
+## BUILD STATUS (updated 2026-03-04, session 4)
 
-  Phase 0 — Migration:     1/7   █░░░░░░░  (M1 done)
+  Phase 0 — Migration:     2/7   ██░░░░░░  (M1, M2 done)
   Phase 1 — Foundation:    5/5   ████████  COMPLETE
-  Phase 2 — Transactions:  0/4   ░░░░░░░░
+  Phase 2 — Transactions:  3/4   ██████░░  (T1, T2, T4 done)
   Phase 3 — Documents:     0/3   ░░░░░░░░
   Phase 4 — Payroll:       0/6   ░░░░░░░░
   Phase 5 — Tax Forms:     0/9   ░░░░░░░░
   Phase 6 — Reporting:     0/5   ░░░░░░░░
   Phase 7 — Operations:    1/4   █░░░░░░░  (O1 done)
-  TOTAL: 7/34 modules complete
+  TOTAL: 11/34 modules complete
 
 ## ENVIRONMENT NOTES
 - Python: 3.14.2 (venv at backend/.venv)
 - PostgreSQL: local, role 'postgres', database 'ga_cpa'
 - DB connection: postgresql+asyncpg://postgres:postgres@localhost:5432/ga_cpa
 - Schema: 26 tables, 1 view, 24 audit triggers, 87 seed CoA entries
-- Tests: 204 passing (auth:10, auth_endpoints:18, clients:25, coa:28, health:2, journal_entries:40, audit_log:16, qbo_parser:65)
+- Tests: 331 passing (auth:10, auth_endpoints:18, clients:25, coa:28, health:2, journal_entries:40, audit_log:16, qbo_parser:65, vendors:11, bills:28, invoices:33, approvals:21, client_splitter:34)
 - Agent prompts: see AGENT_PROMPTS/ (not in this file)
 
 ## NEXT TASKS (priority order)
-1. TASK-013/014 — T1 AP + T2 AR (parallel, both depend on F3+F4, done)
-2. TASK-015 — T4 Approval Workflow (depends F3+F5, both done)
-3. TASK-002 — M2 Client Splitter (depends M1, done)
-   Phase 1 COMPLETE — Transactions and Migration can now proceed in parallel.
+1. TASK-015 — T3 Bank Reconciliation (depends T1+T2, both done)
+2. TASK-003 — M3 Chart of Accounts Mapper (depends M1+F1, both done)
+3. TASK-017 — D1 Document Upload (depends F4+F5, both done)
+4. TASK-020 — P1 Employee Records (depends F4, done)
+   Phase 2 nearly complete (3/4). T3, M3, D1, P1 can all run in parallel.
 
 ## OPEN COMPLIANCE FLAGS
 11 open issues (#1-#11) — all TY2026 rate verification.
