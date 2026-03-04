@@ -73,11 +73,12 @@ All 34 modules broken into agent-sized tasks. One task = one agent session = one
 - **Status:** DONE (2026-03-04, CEO Orchestrator Session 1)
 - **Agent instructions:** The schema (001_initial_schema.sql) is already created by the Research Agent. This task applies it to the database, verifies all tables/constraints/triggers work, and writes tests confirming double-entry enforcement and audit trail triggers fire correctly.
 
-### TASK-009
+### TASK-009 ✓ DONE
 - **Module:** F2 — Chart of accounts (Georgia standard)
 - **Depends on:** TASK-008
 - **Compliance risk:** MEDIUM
 - **Estimated complexity:** LOW
+- **Status:** DONE (2026-03-04, CEO Orchestrator Session 2)
 - **Agent instructions:** Build the seed data and API endpoint for Georgia-standard chart of accounts. Pre-seed accounts covering all four entity types (sole prop, S-Corp, C-Corp, partnership/LLC). Build CRUD endpoints with client_id isolation.
 
 ### TASK-010
@@ -87,18 +88,20 @@ All 34 modules broken into agent-sized tasks. One task = one agent session = one
 - **Estimated complexity:** HIGH
 - **Agent instructions:** Build the general ledger service: create journal entries with lines, enforce debits=credits via trigger, post entries to GL. Build API endpoints for journal entry CRUD. Status flow: DRAFT → PENDING_APPROVAL → POSTED. Only CPA_OWNER can post.
 
-### TASK-011
+### TASK-011 ✓ DONE
 - **Module:** F4 — Client management
 - **Depends on:** TASK-008
 - **Compliance risk:** LOW
 - **Estimated complexity:** LOW
+- **Status:** DONE (2026-03-04, CEO Orchestrator Session 2)
 - **Agent instructions:** Build client CRUD API: create, edit, archive (soft delete), list. Include entity_type tagging. Every query must filter by client_id. Write a test proving Client A queries cannot return Client B data.
 
-### TASK-012
+### TASK-012 ✓ DONE
 - **Module:** F5 — User auth (JWT + roles)
 - **Depends on:** TASK-008
 - **Compliance risk:** MEDIUM
 - **Estimated complexity:** MEDIUM
+- **Status:** DONE (2026-03-04, CEO Orchestrator Session 2)
 - **Agent instructions:** Build JWT authentication: login endpoint, token generation/validation, role-based middleware (CPA_OWNER vs ASSOCIATE). Log all 403s to permission_log table. Write tests proving ASSOCIATE cannot access CPA_OWNER endpoints.
 
 ---
