@@ -12,11 +12,12 @@ All 34 modules broken into agent-sized tasks. One task = one agent session = one
 
 ## Phase 0 — Migration
 
-### TASK-001
+### TASK-001 ✓ DONE
 - **Module:** M1 — QB Online CSV parser and validator
 - **Depends on:** NONE
 - **Compliance risk:** HIGH
 - **Estimated complexity:** MEDIUM
+- **Status:** DONE (2026-03-04, CEO Orchestrator Session 3)
 - **Agent instructions:** Build a Python module that reads QuickBooks Online CSV exports, validates required columns and data types per MIGRATION_SPEC.md, and returns structured data or a validation error report. Must handle Chart of Accounts, Transaction Detail, Customer List, Invoice List, Payroll Summary, and Employee List CSVs.
 
 ### TASK-002
@@ -81,12 +82,13 @@ All 34 modules broken into agent-sized tasks. One task = one agent session = one
 - **Status:** DONE (2026-03-04, CEO Orchestrator Session 2)
 - **Agent instructions:** Build the seed data and API endpoint for Georgia-standard chart of accounts. Pre-seed accounts covering all four entity types (sole prop, S-Corp, C-Corp, partnership/LLC). Build CRUD endpoints with client_id isolation.
 
-### TASK-010
+### TASK-010 ✓ DONE
 - **Module:** F3 — General ledger with double-entry
 - **Depends on:** TASK-008, TASK-009
 - **Compliance risk:** HIGH
 - **Estimated complexity:** HIGH
 - **Agent instructions:** Build the general ledger service: create journal entries with lines, enforce debits=credits via trigger, post entries to GL. Build API endpoints for journal entry CRUD. Status flow: DRAFT → PENDING_APPROVAL → POSTED. Only CPA_OWNER can post.
+- **Status:** DONE (2026-03-04, CEO Orchestrator Session 3)
 
 ### TASK-011 ✓ DONE
 - **Module:** F4 — Client management
@@ -317,11 +319,12 @@ All 34 modules broken into agent-sized tasks. One task = one agent session = one
 
 ## Phase 7 — Operations
 
-### TASK-040
+### TASK-040 ✓ DONE
 - **Module:** O1 — Audit trail viewer
 - **Depends on:** TASK-008
 - **Compliance risk:** LOW
 - **Estimated complexity:** LOW
+- **Status:** DONE (2026-03-04, CEO Orchestrator Session 3)
 - **Agent instructions:** Build UI and API to browse the audit_log table. Filter by table, record, user, date range. Read-only — no modifications allowed. Paginated results.
 
 ### TASK-041
