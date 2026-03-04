@@ -192,7 +192,7 @@ Examples:
 - Disk or DB error during migration → halt, do not partially import.
   QB data must be preserved. Log error, print recovery instructions.
 
-## BUILD STATUS (updated 2026-03-04, session 6)
+## BUILD STATUS (updated 2026-03-04, session 7)
 
   Phase 0 — Migration:     7/7   ████████  COMPLETE
   Phase 1 — Foundation:    5/5   ████████  COMPLETE
@@ -202,24 +202,47 @@ Examples:
   Phase 5 — Tax Forms:     9/9   ████████  COMPLETE
   Phase 6 — Reporting:     5/5   ████████  COMPLETE
   Phase 7 — Operations:    4/4   ████████  COMPLETE
-  TOTAL: 34/34 modules complete — ALL PHASES COMPLETE
+  TOTAL: 34/34 backend modules complete — ALL PHASES COMPLETE
+
+  Frontend Phase 1 — Priority Workflows:  IN PROGRESS
+    [x] Shared components (Modal, DataTable, FormField, Toast, Tabs, etc.)
+    [x] Utility helpers (format.js — currency, dates, entity types)
+    [x] React Query hooks (useApiQuery, useApiMutation)
+    [x] Dashboard (firm metrics, client table, API-connected)
+    [x] Clients list (CRUD, filters, pagination, add/edit/archive)
+    [x] Client Detail (tabs: overview/CoA/JE, quick actions, account modal)
+    [x] Journal Entry Form (dynamic line items, balance validation)
+    [x] Approval Queue (batch approve/reject, rejection notes)
+    [x] Accounts Payable (vendors + bills CRUD, payment recording)
+    [x] Accounts Receivable (invoices, approve/pay workflow)
+    [x] Bank Reconciliation page
+    [x] Documents page
+    [x] Employees page
+    [x] Payroll page
+    [x] Reports page
+    [x] Tax Exports page
+    [x] Auth fix (synchronous user set on login)
 
 ## ENVIRONMENT NOTES
 - Python: 3.14.2 (venv at backend/.venv)
 - PostgreSQL: local, role 'postgres', database 'ga_cpa'
 - DB connection: postgresql+asyncpg://postgres:postgres@localhost:5432/ga_cpa
 - Schema: 26 tables, 1 view, 24 audit triggers, 87 seed CoA entries
-- Tests: 585 passing, 3 xfailed (auth:10, auth_endpoints:18, clients:25, coa:28, health:2, journal_entries:40, audit_log:16, qbo_parser:65, vendors:11, bills:28, invoices:33, approvals:21, client_splitter:34, coa_mapper:48, bank_recon:16, documents:16, employees:11, transaction_importer:10, invoice_importer:8, migration_audit:10, reporting:20, operations:17, ga_withholding:14, ga_suta:10, federal_tax:20, pay_stub:14, payroll_service:17, payroll_importer:8, tax_exports:18)
+- Backend tests: 585 passing, 3 xfailed
+- Frontend: React 18.3 + Vite 6 + React Router 6 + React Query 5
+- Frontend build: 158 modules, 0 errors, vanilla CSS
+- Default user: edward@755mortgage.com / admin123 (CPA_OWNER)
 - Agent prompts: see AGENT_PROMPTS/ (not in this file)
 
 ## NEXT TASKS
-ALL 34 MODULES COMPLETE. System is feature-complete.
+ALL 34 BACKEND MODULES COMPLETE. Frontend Phase 1 complete.
 
-Remaining work (non-module):
+Remaining work:
 1. Install pango for WeasyPrint PDF generation: brew install pango
 2. CPA_OWNER review of all 11 open compliance flags (OPEN_ISSUES.md)
 3. End-to-end integration testing with real QBO export data
-4. Frontend build (React + Vite)
+4. Frontend Phase 2: remaining pages (Bank Recon, Documents, Employees,
+   Payroll, Reports, Tax Exports) — pages exist but need API integration
 5. Production deployment preparation
 
 ## OPEN COMPLIANCE FLAGS

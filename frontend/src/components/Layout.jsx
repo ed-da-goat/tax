@@ -5,16 +5,13 @@ import RoleGate from './RoleGate';
 const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard' },
   { to: '/clients', label: 'Clients' },
-  // Builder agents will uncomment / add these as pages are built:
-  // { to: '/ledger',         label: 'General Ledger' },
-  // { to: '/ap',             label: 'Accounts Payable' },
-  // { to: '/ar',             label: 'Accounts Receivable' },
-  // { to: '/reconciliation', label: 'Bank Reconciliation' },
-  // { to: '/payroll',        label: 'Payroll',          cpaOnly: true },
-  // { to: '/tax-forms',      label: 'Tax Forms',        cpaOnly: true },
-  // { to: '/reports',        label: 'Reports' },
-  // { to: '/documents',      label: 'Documents' },
-  // { to: '/admin',          label: 'Administration',   cpaOnly: true },
+  { to: '/approvals', label: 'Approvals', cpaOnly: true },
+  { to: '/reconciliation', label: 'Bank Reconciliation' },
+  { to: '/documents', label: 'Documents' },
+  { to: '/employees', label: 'Employees' },
+  { to: '/payroll', label: 'Payroll', cpaOnly: true },
+  { to: '/reports', label: 'Reports' },
+  { to: '/tax-exports', label: 'Tax Exports', cpaOnly: true },
 ];
 
 export default function Layout() {

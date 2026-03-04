@@ -55,8 +55,10 @@ export function AuthProvider({ children }) {
     });
     const { access_token } = response.data;
     localStorage.setItem('token', access_token);
+    const decoded = decodeToken(access_token);
+    setUser(decoded);
     setToken(access_token);
-    return decodeToken(access_token);
+    return decoded;
   }, []);
 
   const logout = useCallback(() => {
