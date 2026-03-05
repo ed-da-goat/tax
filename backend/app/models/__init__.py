@@ -25,6 +25,9 @@ from app.models.employee import Employee, FilingStatus, PayType
 from app.models.payroll import PayrollRun, PayrollItem, PayrollRunStatus
 from app.models.payroll_tax_table import PayrollTaxTable
 from app.models.check_sequence import ClientCheckSequence
+from app.models.employee_bank_account import EmployeeBankAccount, AccountType, PrenoteStatus
+from app.models.direct_deposit_batch import DirectDepositBatch, DDBatchStatus
+from app.models.tax_filing import TaxFilingSubmission, TaxFilingStatus, TaxFilingProvider
 
 __all__ = [
     "Base", "TimestampMixin", "SoftDeleteMixin",
@@ -42,4 +45,7 @@ __all__ = [
     "PayrollRun", "PayrollItem", "PayrollRunStatus",
     "PayrollTaxTable",
     "ClientCheckSequence",
+    "EmployeeBankAccount", "AccountType", "PrenoteStatus",
+    "DirectDepositBatch", "DDBatchStatus",
+    "TaxFilingSubmission", "TaxFilingStatus", "TaxFilingProvider",
 ]

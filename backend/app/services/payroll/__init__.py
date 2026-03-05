@@ -8,10 +8,15 @@ from .ga_withholding import GeorgiaWithholdingCalculator
 from .ga_suta import GeorgiaSUTACalculator
 from .federal_tax import FederalTaxCalculator
 from .payroll_service import PayrollService
+from .nacha_generator import NACHAFileGenerator, NACHAEntry
+from .direct_deposit_service import DirectDepositService
 
 __all__ = [
     "GeorgiaWithholdingCalculator",
     "GeorgiaSUTACalculator",
     "FederalTaxCalculator",
     "PayrollService",
+    "NACHAFileGenerator",
+    "NACHAEntry",
+    "DirectDepositService",
 ]

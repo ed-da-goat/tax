@@ -115,3 +115,19 @@ def register_routers(app: FastAPI) -> None:
 
     from app.routers.operations import router as operations_router
     app.include_router(operations_router, prefix="/api/v1/operations", tags=["operations"])
+
+    # --- Phase 8A routers (Direct Deposit / NACHA) ---
+    from app.routers.direct_deposit import router as dd_router
+    app.include_router(
+        dd_router,
+        prefix="/api/v1/clients/{client_id}",
+        tags=["direct-deposit"],
+    )
+
+    # --- Phase 8B routers (Tax E-Filing) ---
+    from app.routers.tax_filing import router as tax_filing_router
+    app.include_router(
+        tax_filing_router,
+        prefix="/api/v1/clients/{client_id}/tax-filings",
+        tags=["tax-filing"],
+    )
