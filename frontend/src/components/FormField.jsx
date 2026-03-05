@@ -1,16 +1,20 @@
-export function FormField({ label, error, children }) {
+export function FormField({ label, error, required, children }) {
   return (
     <div className="form-field">
-      {label && <label className="form-label">{label}</label>}
+      {label && (
+        <label className={`form-label${required ? ' form-label--required' : ''}`}>
+          {label}
+        </label>
+      )}
       {children}
       {error && <span className="form-error">{error}</span>}
     </div>
   );
 }
 
-export function SelectField({ label, name, value, onChange, options, error, placeholder }) {
+export function SelectField({ label, name, value, onChange, options, error, placeholder, required }) {
   return (
-    <FormField label={label} error={error}>
+    <FormField label={label} error={error} required={required}>
       <select
         name={name}
         value={value}

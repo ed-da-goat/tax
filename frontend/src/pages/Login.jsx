@@ -60,6 +60,7 @@ export default function Login() {
             autoComplete="email"
             required
             autoFocus
+            placeholder="you@firm.com"
           />
 
           <label className="form-label" htmlFor="password">
@@ -75,7 +76,11 @@ export default function Login() {
             required
           />
 
-          <button className="btn btn--primary btn--full" type="submit" disabled={loading}>
+          <button
+            className={`btn btn--primary btn--full${loading ? ' btn--loading' : ''}`}
+            type="submit"
+            disabled={loading}
+          >
             {loading ? 'Signing in...' : 'Sign in'}
           </button>
         </form>

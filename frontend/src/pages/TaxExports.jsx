@@ -185,13 +185,20 @@ export default function TaxExports() {
               </select>
             </div>
           )}
-          <button className="btn btn--primary" style={{ marginBottom: 0 }} onClick={fetchForm} disabled={!clientId || loading}>
+          <button className={`btn btn--primary${loading ? ' btn--loading' : ''}`} style={{ marginBottom: 0 }} onClick={fetchForm} disabled={!clientId || loading}>
             Generate
           </button>
         </div>
 
         {error && <div className="alert alert--error">{error}</div>}
 
+        {loading && <div className="spinner" />}
+        {!loading && !data && !error && (
+          <div className="empty-state">
+            <div className="empty-state-heading">Select a client and tax year</div>
+            <div className="empty-state-text">Click Generate to view form data for the selected tab.</div>
+          </div>
+        )}
         {tab === 'g7' && renderG7()}
         {tab === 'st3' && renderST3()}
         {tab === 'checklist' && renderChecklist()}

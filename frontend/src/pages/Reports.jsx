@@ -135,11 +135,18 @@ export default function Reports() {
               <ClientSelector value={clientId} onSelect={setClientId} />
               <input className="form-input" type="date" style={{ maxWidth: 160, marginBottom: 16 }} value={startDate} onChange={(e) => setStartDate(e.target.value)} />
               <input className="form-input" type="date" style={{ maxWidth: 160, marginBottom: 16 }} value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-              <button className="btn btn--primary" style={{ marginBottom: 16 }} onClick={fetchPL} disabled={!clientId || loading}>Generate</button>
+              <button className={`btn btn--primary${loading ? ' btn--loading' : ''}`} style={{ marginBottom: 16 }} onClick={fetchPL} disabled={!clientId || loading}>Generate</button>
               <RoleGate role="CPA_OWNER">
                 {plData && <button className="btn btn--outline" style={{ marginBottom: 16 }} onClick={() => exportPdf('profit-loss')}>Export PDF</button>}
               </RoleGate>
             </div>
+            {loading && !plData && <div className="spinner" />}
+            {!loading && !plData && (
+              <div className="empty-state">
+                <div className="empty-state-heading">Select a client and date range</div>
+                <div className="empty-state-text">Click Generate to view the Profit &amp; Loss report.</div>
+              </div>
+            )}
             {plData && (
               <div className="card">
                 <h3 style={{ marginBottom: 16 }}>Profit & Loss — {formatDate(plData.period_start)} to {formatDate(plData.period_end)}</h3>
@@ -167,11 +174,18 @@ export default function Reports() {
             <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', marginBottom: 16 }}>
               <ClientSelector value={clientId} onSelect={setClientId} />
               <input className="form-input" type="date" style={{ maxWidth: 160, marginBottom: 16 }} value={asOfDate} onChange={(e) => setAsOfDate(e.target.value)} />
-              <button className="btn btn--primary" style={{ marginBottom: 16 }} onClick={fetchBS} disabled={!clientId || loading}>Generate</button>
+              <button className={`btn btn--primary${loading ? ' btn--loading' : ''}`} style={{ marginBottom: 16 }} onClick={fetchBS} disabled={!clientId || loading}>Generate</button>
               <RoleGate role="CPA_OWNER">
                 {bsData && <button className="btn btn--outline" style={{ marginBottom: 16 }} onClick={() => exportPdf('balance-sheet')}>Export PDF</button>}
               </RoleGate>
             </div>
+            {loading && !bsData && <div className="spinner" />}
+            {!loading && !bsData && (
+              <div className="empty-state">
+                <div className="empty-state-heading">Select a client and date</div>
+                <div className="empty-state-text">Click Generate to view the Balance Sheet.</div>
+              </div>
+            )}
             {bsData && (
               <div className="card">
                 <h3 style={{ marginBottom: 16 }}>Balance Sheet — As of {formatDate(bsData.as_of_date)}</h3>
@@ -198,11 +212,18 @@ export default function Reports() {
               <ClientSelector value={clientId} onSelect={setClientId} />
               <input className="form-input" type="date" style={{ maxWidth: 160, marginBottom: 16 }} value={startDate} onChange={(e) => setStartDate(e.target.value)} />
               <input className="form-input" type="date" style={{ maxWidth: 160, marginBottom: 16 }} value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-              <button className="btn btn--primary" style={{ marginBottom: 16 }} onClick={fetchCF} disabled={!clientId || loading}>Generate</button>
+              <button className={`btn btn--primary${loading ? ' btn--loading' : ''}`} style={{ marginBottom: 16 }} onClick={fetchCF} disabled={!clientId || loading}>Generate</button>
               <RoleGate role="CPA_OWNER">
                 {cfData && <button className="btn btn--outline" style={{ marginBottom: 16 }} onClick={() => exportPdf('cash-flow')}>Export PDF</button>}
               </RoleGate>
             </div>
+            {loading && !cfData && <div className="spinner" />}
+            {!loading && !cfData && (
+              <div className="empty-state">
+                <div className="empty-state-heading">Select a client and date range</div>
+                <div className="empty-state-text">Click Generate to view the Cash Flow Statement.</div>
+              </div>
+            )}
             {cfData && (
               <div className="card">
                 <h3 style={{ marginBottom: 16 }}>Cash Flow Statement — {formatDate(cfData.period_start)} to {formatDate(cfData.period_end)}</h3>
@@ -235,8 +256,15 @@ export default function Reports() {
             <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', marginBottom: 16 }}>
               <input className="form-input" type="date" style={{ maxWidth: 160, marginBottom: 16 }} value={startDate} onChange={(e) => setStartDate(e.target.value)} />
               <input className="form-input" type="date" style={{ maxWidth: 160, marginBottom: 16 }} value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-              <button className="btn btn--primary" style={{ marginBottom: 16 }} onClick={fetchDashboard} disabled={loading}>Generate Dashboard</button>
+              <button className={`btn btn--primary${loading ? ' btn--loading' : ''}`} style={{ marginBottom: 16 }} onClick={fetchDashboard} disabled={loading}>Generate Dashboard</button>
             </div>
+            {loading && !dashData && <div className="spinner" />}
+            {!loading && !dashData && (
+              <div className="empty-state">
+                <div className="empty-state-heading">Set a date range for the dashboard</div>
+                <div className="empty-state-text">Click Generate Dashboard to view firm-wide metrics.</div>
+              </div>
+            )}
             {dashData && (
               <>
                 <div className="card-grid" style={{ marginBottom: 24 }}>

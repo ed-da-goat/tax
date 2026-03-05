@@ -251,13 +251,14 @@ export default function Clients() {
         size="md"
       >
         <form onSubmit={handleSubmit}>
-          <FormField label="Name" error={errors.name}>
+          <FormField label="Name" error={errors.name} required>
             <input
               className="form-input"
               name="name"
               value={form.name}
               onChange={handleChange}
               autoFocus
+              placeholder="Business or individual name"
             />
           </FormField>
 
@@ -269,6 +270,7 @@ export default function Clients() {
             options={ENTITY_TYPES}
             placeholder="Select type..."
             error={errors.entity_type}
+            required
           />
 
           <FormField label="EIN">

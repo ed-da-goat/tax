@@ -44,6 +44,7 @@ export default function ApprovalQueue() {
       const result = res.data;
       queryClient.invalidateQueries({ queryKey: ['approvals'] });
       queryClient.invalidateQueries({ queryKey: ['approvals-count'] });
+      queryClient.invalidateQueries({ queryKey: ['approvals-badge'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       setSelectedIds([]);
       addToast('success', `${result.total_succeeded} of ${result.total_processed} processed`);
@@ -57,6 +58,7 @@ export default function ApprovalQueue() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['approvals'] });
       queryClient.invalidateQueries({ queryKey: ['approvals-count'] });
+      queryClient.invalidateQueries({ queryKey: ['approvals-badge'] });
       addToast('success', 'Entry rejected');
       setRejectTarget(null);
       setRejectNote('');
@@ -139,7 +141,8 @@ export default function ApprovalQueue() {
         pageSize={PAGE_SIZE}
         onPageChange={setPage}
         loading={isLoading}
-        emptyMessage="No entries pending approval."
+        emptyMessage="All caught up! No entries pending approval."
+        emptyAction="New journal entries submitted by associates will appear here."
         selectable={isCpa}
         selectedIds={selectedIds}
         onSelectChange={setSelectedIds}
