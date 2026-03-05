@@ -24,6 +24,7 @@ from app.auth.dependencies import CurrentUser, get_current_user, require_role, v
 from app.auth.jwt import create_access_token
 from app.database import get_db
 from app.schemas.auth import (
+    ChangePasswordRequest,
     LoginRequest,
     LoginResponse,
     UserCreate,
@@ -47,15 +48,19 @@ async def _log_403(
     role_required: str,
 ) -> None:
     """Log a 403 rejection to the permission_log table."""
-    await auth_service.log_permission_denial(
-        db=db,
-        user_id=user.user_id,
-        endpoint=request.url.path,
-        method=request.method,
-        role_required=role_required,
-        role_provided=user.role,
-        ip_address=_client_ip(request),
-    )
+    try:
+        await auth_service.log_permission_denial(
+            db=db,
+            user_id=user.user_id,
+            endpoint=request.url.path,
+            method=request.method,
+            role_required=role_required,
+            role_provided=user.role,
+            ip_address=_client_ip(request),
+        )
+    except Exception:
+        # Logging failure must never prevent the 403 from being returned
+        pass
 
 
 # ---------------------------------------------------------------------------
@@ -64,19 +69,41 @@ async def _log_403(
 @router.post("/login", response_model=LoginResponse)
 async def login(
     data: LoginRequest,
+    request: Request,
     db: AsyncSession = Depends(get_db),
 ) -> LoginResponse:
     """Authenticate with email + password and receive a JWT."""
+    from app.middleware.security import (
+        check_login_rate,
+        clear_login_attempts,
+        record_failed_login,
+    )
+
+    client_ip = _client_ip(request)
+
+    # Rate limit check
+    rate_error = check_login_rate(client_ip, data.email)
+    if rate_error:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=rate_error,
+        )
+
     user = await auth_service.authenticate(db, data.email, data.password)
     if user is None:
+        record_failed_login(client_ip, data.email)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",
         )
 
+    # Successful login — clear rate limit tracking
+    clear_login_attempts(client_ip, data.email)
+
     token = create_access_token(
         user_id=str(user.id),
         role=user.role,
+        extra_claims={"full_name": user.full_name},
     )
 
     return LoginResponse(
@@ -221,3 +248,41 @@ async def deactivate_user(
             detail="User not found",
         )
     return UserResponse.model_validate(user)
+
+
+# ---------------------------------------------------------------------------
+# POST /api/v1/auth/change-password
+# ---------------------------------------------------------------------------
+@router.post("/change-password", status_code=status.HTTP_200_OK)
+async def change_password(
+    data: ChangePasswordRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, str]:
+    """Change the current user's password. Requires current password verification."""
+    user = await auth_service.get_user(db, uuid.UUID(current_user.user_id))
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+
+    # Verify current password
+    if not auth_service.verify_password(data.current_password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect",
+        )
+
+    # Prevent reusing the same password
+    if auth_service.verify_password(data.new_password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password must be different from current password",
+        )
+
+    # Update password
+    user.password_hash = auth_service.hash_password(data.new_password)
+    await db.commit()
+
+    return {"message": "Password changed successfully"}

@@ -39,7 +39,7 @@ export default function Dashboard() {
         <div>
           <h1 className="page-title">Dashboard</h1>
           <p className="page-subtitle" style={{ marginBottom: 0 }}>
-            Welcome back, {user?.username ?? user?.name ?? 'User'}.
+            Welcome back, {user?.full_name ?? 'User'}.
           </p>
         </div>
       </div>

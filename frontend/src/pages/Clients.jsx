@@ -14,11 +14,10 @@ import { useApiQuery } from '../hooks/useApiQuery';
 import { formatEntityType } from '../utils/format';
 
 const ENTITY_TYPES = [
-  { value: 'SOLE_PROPRIETOR', label: 'Sole Proprietor' },
+  { value: 'SOLE_PROP', label: 'Sole Proprietor' },
   { value: 'S_CORP', label: 'S-Corp' },
   { value: 'C_CORP', label: 'C-Corp' },
-  { value: 'PARTNERSHIP', label: 'Partnership' },
-  { value: 'LLC', label: 'LLC' },
+  { value: 'PARTNERSHIP_LLC', label: 'Partnership / LLC' },
 ];
 
 const PAGE_SIZE = 25;
@@ -26,7 +25,6 @@ const PAGE_SIZE = 25;
 const emptyForm = {
   name: '',
   entity_type: '',
-  ein: '',
   address: '',
   phone: '',
   email: '',
@@ -146,7 +144,6 @@ export default function Clients() {
   const columns = [
     { key: 'name', label: 'Name' },
     { key: 'entity_type', label: 'Entity Type', render: (v) => formatEntityType(v) },
-    { key: 'ein', label: 'EIN' },
     { key: 'phone', label: 'Phone' },
     { key: 'email', label: 'Email' },
     {

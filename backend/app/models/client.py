@@ -42,7 +42,7 @@ class Client(Base, TimestampMixin, SoftDeleteMixin):
 
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     entity_type: Mapped[EntityType] = mapped_column(
-        Enum(EntityType, name="entity_type_enum", create_type=False),
+        Enum(EntityType, name="entity_type", create_type=False),
         nullable=False,
     )
     tax_id_encrypted: Mapped[bytes | None] = mapped_column(

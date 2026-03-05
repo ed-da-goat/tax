@@ -42,7 +42,7 @@ export default function Reports() {
     setLoading(true); setError('');
     try {
       const res = await api.get(`/api/v1/reports/clients/${clientId}/profit-loss`, {
-        params: { start_date: startDate, end_date: endDate },
+        params: { period_start: startDate, period_end: endDate },
       });
       setPlData(res.data);
     } catch (e) { setError(e.response?.data?.detail || 'Failed to load report'); }
@@ -66,7 +66,7 @@ export default function Reports() {
     setLoading(true); setError('');
     try {
       const res = await api.get(`/api/v1/reports/clients/${clientId}/cash-flow`, {
-        params: { start_date: startDate, end_date: endDate },
+        params: { period_start: startDate, period_end: endDate },
       });
       setCfData(res.data);
     } catch (e) { setError(e.response?.data?.detail || 'Failed to load report'); }
@@ -77,7 +77,7 @@ export default function Reports() {
     setLoading(true); setError('');
     try {
       const res = await api.get('/api/v1/reports/dashboard', {
-        params: { start_date: startDate, end_date: endDate },
+        params: { period_start: startDate, period_end: endDate },
       });
       setDashData(res.data);
     } catch (e) { setError(e.response?.data?.detail || 'Failed to load dashboard'); }
@@ -89,7 +89,7 @@ export default function Reports() {
     try {
       const params = type === 'balance-sheet'
         ? { as_of_date: asOfDate }
-        : { start_date: startDate, end_date: endDate };
+        : { period_start: startDate, period_end: endDate };
       const res = await api.get(`/api/v1/reports/clients/${clientId}/${type}/pdf`, {
         params,
         responseType: 'blob',

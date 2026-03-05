@@ -44,12 +44,11 @@ async def create_backup(
     if not result.success:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Backup failed: {result.error}",
+            detail="Backup failed. Check server logs for details.",
         )
     return {
         "message": "Backup created successfully",
         "filename": result.filename,
-        "filepath": result.filepath,
         "size_bytes": result.size_bytes,
     }
 
@@ -93,7 +92,6 @@ async def get_backup(
         )
     return {
         "filename": backup.filename,
-        "filepath": backup.filepath,
         "size_bytes": backup.size_bytes,
         "created_at": backup.created_at,
     }
@@ -146,7 +144,7 @@ async def restore_backup(
     if not result.success:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Restore failed: {result.error}",
+            detail="Restore failed. Check server logs for details.",
         )
     return {"message": "Database restored successfully", "filename": result.filename}
 

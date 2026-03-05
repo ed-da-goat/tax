@@ -94,11 +94,11 @@ GA_BRACKETS_2024_MARRIED: list[tuple[Decimal, Decimal, Decimal]] = [
     (Decimal("10000.00"), Decimal("999999999.99"), Decimal("0.0549")),
 ]
 
-# SOURCE: Georgia DOR, HB 1015, Tax Year 2025 — flat rate transition
+# SOURCE: Georgia DOR, HB 111 (retroactive), Tax Year 2025 — flat rate 5.19%
 # REVIEW DATE: 2026-03-04
-GA_FLAT_RATE_2025 = Decimal("0.0539")
+GA_FLAT_RATE_2025 = Decimal("0.0519")
 
-# SOURCE: Georgia DOR, HB 1015, Tax Year 2026 — flat rate transition
+# SOURCE: Georgia DOR, HB 111, Tax Year 2026 — flat rate 5.19%
 # REVIEW DATE: 2026-03-04
 # COMPLIANCE REVIEW NEEDED: Verify 2026 flat rate with GA DOR publication
 GA_FLAT_RATE_2026 = Decimal("0.0519")

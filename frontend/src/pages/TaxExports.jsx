@@ -45,6 +45,10 @@ export default function TaxExports() {
     try {
       const params = { tax_year: taxYear };
       if (tab === 'g7') params.quarter = quarter;
+      if (tab === 'st3') {
+        params.period_start = `${taxYear}-01-01`;
+        params.period_end = `${taxYear}-12-31`;
+      }
       const endpoint = API_MAP[tab];
       const res = await api.get(`/api/v1/tax/clients/${clientId}/${endpoint}`, { params });
       setData(res.data);

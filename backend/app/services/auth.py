@@ -85,7 +85,12 @@ async def authenticate(
         )
     )
     user = result.scalars().first()
+
+    # Timing-attack mitigation: always run the password hash comparison
+    # even if the user doesn't exist, so response time is constant.
     if user is None:
+        # Dummy verify to consume the same time as a real check
+        pwd_context.hash("timing-attack-dummy-password")
         return None
     if not verify_password(password, user.password_hash):
         return None

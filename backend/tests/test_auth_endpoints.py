@@ -161,7 +161,7 @@ class TestCreateUser:
                 "/api/v1/auth/users",
                 json={
                     "email": "newuser@firm.com",
-                    "password": "securepassword1",
+                    "password": "Secure1!pass",
                     "full_name": "New User",
                     "role": "ASSOCIATE",
                 },
@@ -186,7 +186,7 @@ class TestCreateUser:
                 "/api/v1/auth/users",
                 json={
                     "email": "shouldfail@firm.com",
-                    "password": "securepassword1",
+                    "password": "Secure1!pass",
                     "full_name": "Should Fail",
                     "role": "ASSOCIATE",
                 },
@@ -211,7 +211,7 @@ class TestCreateUser:
                 "/api/v1/auth/users",
                 json={
                     "email": "shouldfail@firm.com",
-                    "password": "securepassword1",
+                    "password": "Secure1!pass",
                     "full_name": "Should Fail",
                     "role": "ASSOCIATE",
                 },

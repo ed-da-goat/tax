@@ -12,10 +12,20 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Validate redirect destination to prevent open redirect attacks
+  const SAFE_PATHS = ['/dashboard', '/clients', '/approvals', '/reconciliation',
+    '/documents', '/employees', '/payroll', '/reports', '/tax-exports'];
+  function getSafeRedirect() {
+    const from = location.state?.from?.pathname;
+    if (from && (SAFE_PATHS.includes(from) || from.startsWith('/clients/'))) {
+      return from;
+    }
+    return '/dashboard';
+  }
+
   // If already logged in, redirect away from login page
   if (isAuthenticated) {
-    const dest = location.state?.from?.pathname || '/dashboard';
-    navigate(dest, { replace: true });
+    navigate(getSafeRedirect(), { replace: true });
     return null;
   }
 
@@ -26,8 +36,7 @@ export default function Login() {
 
     try {
       await login(email, password);
-      const dest = location.state?.from?.pathname || '/dashboard';
-      navigate(dest, { replace: true });
+      navigate(getSafeRedirect(), { replace: true });
     } catch (err) {
       const msg =
         err.response?.data?.detail ||

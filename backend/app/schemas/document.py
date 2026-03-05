@@ -13,7 +13,6 @@ from app.schemas import BaseSchema, RecordSchema
 class DocumentResponse(RecordSchema):
     client_id: UUID
     file_name: str
-    file_path: str
     file_type: str | None = None
     file_size_bytes: int | None = None
     description: str | None = None

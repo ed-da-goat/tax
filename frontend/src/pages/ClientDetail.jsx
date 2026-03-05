@@ -128,7 +128,6 @@ export default function ClientDetail() {
         <div>
           <h1 className="page-title">{client.name}</h1>
           <span className="text-muted">{formatEntityType(client.entity_type)}</span>
-          {client.ein && <span className="text-muted" style={{ marginLeft: 12 }}>EIN: {client.ein}</span>}
         </div>
       </div>
 

@@ -115,3 +115,33 @@ All agent sessions are recorded here. Each entry follows the format below.
 - **Issues opened:** NONE
 - **Issues closed:** NONE
 - **Notes:** Four modules built in parallel using isolated worktrees. T1: full vendor CRUD + bill workflow (DRAFT→PENDING→APPROVED→PAID→VOID) with GL posting on approval. T2: invoice workflow (DRAFT→PENDING→SENT→PAID→OVERDUE→VOID) with GL posting on approve/payment/void, auto-calculated line amounts. T4: cross-client approval queue, batch approve/reject, rejection notes, approval history from audit log. M2: client splitter with case-insensitive name matching, unmatched record tracking, splitting report. Phase 2 is now 3/4 complete — only T3 (Bank Reconciliation) remains. Migration is 2/7 complete.
+
+### 2026-03-04 — CEO — Session 8a: Test Data Seed Script
+- **Task ID:** SEED-DATA
+- **Status:** COMPLETE
+- **Files changed:**
+  - backend/scripts/__init__.py (NEW)
+  - backend/scripts/seed_test_data.py (NEW — ~1544 lines)
+  - backend/app/models/client.py (FIX — entity_type_enum → entity_type)
+- **Tests:** 588/588 passed
+- **Issues opened:** NONE
+- **Issues closed:** NONE
+- **Notes:** Created comprehensive test data seeder covering all 4 entity types (SOLE_PROP, S_CORP, C_CORP, PARTNERSHIP_LLC), all workflow statuses, all modules. Fixed entity_type enum name mismatch between ORM model and PostgreSQL (was entity_type_enum, DB had entity_type). Fixed 57 account number mismatches across journal entries, bills, and invoices by auditing against the 87-account template CoA. Script is idempotent with --reset flag. Seed data: 2 users, 4 clients, 348 CoA entries, 19 vendors, 37 bills, 39 invoices, ~90 JEs, 6 bank accounts, 150 transactions, 16 employees, 23 payroll runs, 14 documents, 30 tax table rows.
+
+### 2026-03-04 — CEO — Session 8b: Deployment (Phase B Reliability)
+- **Task ID:** DEPLOY-PHASE-B
+- **Status:** COMPLETE
+- **Files changed:**
+  - deploy/setup.sh (NEW — master installer)
+  - deploy/teardown.sh (NEW — clean uninstaller)
+  - deploy/backup.sh (NEW — nightly backup with 30-day retention + optional replication)
+  - deploy/com.gacpa.backend.plist (NEW — launchd auto-start/restart service)
+  - deploy/com.gacpa.backup.plist (NEW — launchd 2 AM daily backup scheduler)
+  - deploy/nginx.conf (NEW — HTTPS reverse proxy, serves frontend + proxies API)
+  - deploy/certs/ (GENERATED — self-signed TLS cert, 10-year validity)
+  - deploy/logs/ (CREATED — log directory for backend, nginx, backup)
+  - .claude/CLAUDE.md (UPDATED — deployment section, next tasks, frontend status)
+- **Tests:** N/A (deployment, not code)
+- **Issues opened:** NONE
+- **Issues closed:** NONE
+- **Notes:** Deployed full stack on macOS using launchd (not systemd — Darwin platform). nginx installed via Homebrew, configured as HTTPS reverse proxy with self-signed cert covering localhost + LAN IP (192.168.1.104). Backend runs as persistent service with auto-restart on crash. Nightly backup at 2 AM with 30-day retention and optional rsync to external drive via BACKUP_REPLICA_DIR env var. Frontend built for production (160 modules). End-to-end verified: login, client list, bills all working through HTTPS. Security hardening (Phase A) handled by separate agent session.

@@ -17,11 +17,10 @@ export function formatDate(dateStr) {
 
 export function formatEntityType(type) {
   const map = {
-    SOLE_PROPRIETOR: 'Sole Proprietor',
+    SOLE_PROP: 'Sole Proprietor',
     S_CORP: 'S-Corp',
     C_CORP: 'C-Corp',
-    PARTNERSHIP: 'Partnership',
-    LLC: 'LLC',
+    PARTNERSHIP_LLC: 'Partnership / LLC',
   };
   return map[type] || type;
 }

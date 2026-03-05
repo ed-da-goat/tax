@@ -145,10 +145,14 @@ async def view_document(
             detail="Document file not found on disk",
         )
 
+    # Sanitize filename to prevent header injection (remove CR/LF/quotes)
+    import re
+    safe_filename = re.sub(r'[\r\n\x00"]', '', doc.file_name or "document")
+
     return FileResponse(
         path=file_path,
         media_type=doc.file_type or "application/octet-stream",
-        headers={"Content-Disposition": f"inline; filename=\"{doc.file_name}\""},
+        headers={"Content-Disposition": f"inline; filename=\"{safe_filename}\""},
     )
 
 

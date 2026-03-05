@@ -135,10 +135,10 @@ class TestGeorgiaWithholding2024:
 
 
 class TestGeorgiaWithholding2025FlatRate:
-    """Test flat rate system for TY2025 (HB 1015 transition)."""
+    """Test flat rate system for TY2025 (HB 111 transition)."""
 
     def test_flat_rate_2025(self):
-        """2025 uses flat rate of 5.39%."""
+        """2025 uses flat rate of 5.19% (HB 111, retroactive)."""
         result = GeorgiaWithholdingCalculator.calculate(
             gross_pay_per_period=Decimal("2000.00"),
             filing_status="SINGLE",

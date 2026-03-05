@@ -162,7 +162,7 @@ export default function Layout() {
           <div className="topbar-left" />
           <div className="topbar-right">
             <span className="topbar-user">
-              {user?.username ?? 'User'}
+              {user?.full_name ?? 'User'}
               <span className="topbar-role">
                 {user?.role === 'CPA_OWNER' ? 'CPA Owner' : 'Associate'}
               </span>

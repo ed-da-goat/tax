@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.gacpa.backend</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/edwardahrens/tax/backend/.venv/bin/uvicorn</string>
+        <string>app.main:app</string>
+        <string>--host</string>
+        <string>127.0.0.1</string>
+        <string>--port</string>
+        <string>8000</string>
+        <string>--workers</string>
+        <string>2</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/edwardahrens/tax/backend</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/Users/edwardahrens/tax/backend/.venv/bin:/opt/homebrew/bin:/usr/bin:/bin</string>
+    </dict>
+
+    <!-- Auto-start on load (boot/login) -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- Auto-restart on crash after 5 seconds -->
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>ThrottleInterval</key>
+    <integer>5</integer>
+
+    <!-- Logging -->
+    <key>StandardOutPath</key>
+    <string>/Users/edwardahrens/tax/deploy/logs/backend.stdout.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/edwardahrens/tax/deploy/logs/backend.stderr.log</string>
+</dict>
+</plist>

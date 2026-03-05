@@ -40,7 +40,10 @@ class Settings(BaseSettings):
     # -----------------------------------------------------------------------
     JWT_SECRET: str = "CHANGE-ME-IN-PRODUCTION"
     JWT_ALGORITHM: str = "HS256"
-    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 480  # 8-hour workday
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60  # 1-hour sessions (reduced from 8h for security)
+
+    # File upload limits
+    MAX_UPLOAD_SIZE_MB: int = 50
 
     # -----------------------------------------------------------------------
     # CORS
