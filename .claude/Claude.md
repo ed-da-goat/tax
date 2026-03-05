@@ -228,7 +228,7 @@ Examples:
 - PostgreSQL: local, role 'postgres', database 'ga_cpa'
 - DB connection: postgresql+asyncpg://postgres:postgres@localhost:5432/ga_cpa
 - Schema: 26 tables, 1 view, 24 audit triggers, 87 seed CoA entries
-- Backend tests: 585 passing, 3 xfailed
+- Backend tests: 588 passing, 0 xfailed
 - Frontend: React 18.3 + Vite 6 + React Router 6 + React Query 5
 - Frontend build: 158 modules, 0 errors, vanilla CSS
 - Default user: edward@755mortgage.com / admin123 (CPA_OWNER)
@@ -238,12 +238,11 @@ Examples:
 ALL 34 BACKEND MODULES COMPLETE. Frontend Phase 1 complete.
 
 Remaining work:
-1. Install pango for WeasyPrint PDF generation: brew install pango
-2. CPA_OWNER review of all 11 open compliance flags (OPEN_ISSUES.md)
-3. End-to-end integration testing with real QBO export data
-4. Frontend Phase 2: remaining pages (Bank Recon, Documents, Employees,
+1. CPA_OWNER review of all 11 open compliance flags (OPEN_ISSUES.md)
+2. End-to-end integration testing with real QBO export data
+3. Frontend Phase 2: remaining pages (Bank Recon, Documents, Employees,
    Payroll, Reports, Tax Exports) — pages exist but need API integration
-5. Production deployment preparation
+4. Production deployment preparation
 
 ## OPEN COMPLIANCE FLAGS
 11 open issues (#1-#11) — all TY2026 rate verification.
