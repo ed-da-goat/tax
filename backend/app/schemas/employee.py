@@ -31,6 +31,10 @@ class EmployeeCreate(BaseSchema):
     pay_rate: Decimal = Field(..., ge=0)
     pay_type: PayType
     hire_date: date
+    address: str | None = Field(None, max_length=500)
+    city: str | None = Field(None, max_length=100)
+    state: str | None = Field(None, max_length=2)
+    zip: str | None = Field(None, max_length=10)
 
 
 class EmployeeUpdate(BaseSchema):
@@ -43,6 +47,10 @@ class EmployeeUpdate(BaseSchema):
     hire_date: date | None = None
     termination_date: date | None = None
     is_active: bool | None = None
+    address: str | None = Field(None, max_length=500)
+    city: str | None = Field(None, max_length=100)
+    state: str | None = Field(None, max_length=2)
+    zip: str | None = Field(None, max_length=10)
 
 
 class EmployeeResponse(RecordSchema):
@@ -56,6 +64,10 @@ class EmployeeResponse(RecordSchema):
     hire_date: date
     termination_date: date | None = None
     is_active: bool
+    address: str | None = None
+    city: str | None = None
+    state: str | None = None
+    zip: str | None = None
 
 
 class EmployeeList(BaseSchema):

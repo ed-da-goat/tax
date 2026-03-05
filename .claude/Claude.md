@@ -112,6 +112,8 @@ Phase 5 — Tax Form Exports
   [x] X7. Federal Form 1120 data export (C-Corps)
   [x] X8. Federal Form 1065 data export (partnerships/LLCs)
   [x] X9. Tax document checklist generator (per client, per entity type)
+  [x] X10. W-2 generation (aggregate payroll → W-2 boxes, PDF)
+  [x] X11. 1099-NEC generation (vendor payments → 1099-NEC, PDF)
 
 Phase 6 — Reporting
   [x] R1. Profit & Loss (per client, date range selectable)
@@ -119,12 +121,20 @@ Phase 6 — Reporting
   [x] R3. Cash Flow Statement (per client)
   [x] R4. PDF export for all reports (CPA_OWNER only)
   [x] R5. Firm-level dashboard (all clients, key metrics)
+  [x] R6. AR Aging Report (0-30, 31-60, 61-90, 90+ buckets)
+  [x] R7. AP Aging Report (0-30, 31-60, 61-90, 90+ buckets)
 
 Phase 7 — Operations
   [x] O1. Audit trail viewer (immutable log of all changes)
   [x] O2. Automated local backup (daily, to /data/backups/)
   [x] O3. Backup restore tool with verification step
   [x] O4. System health check (DB connection, disk space, last backup)
+
+Phase 8 — Feature Gaps (free code-only features)
+  [x] FG1. W-2 generation (payroll → W-2 boxes, single/batch PDF)
+  [x] FG2. 1099-NEC generation (vendor payments → 1099-NEC, PDF)
+  [x] FG3. AR/AP Aging Reports (bucket classification, PDF export)
+  [x] FG4. Check Printing (auto-increment check numbers, PDF)
 
 ## GIT COMMIT SCHEMA (MANDATORY)
 Format:
@@ -192,19 +202,20 @@ Examples:
 - Disk or DB error during migration → halt, do not partially import.
   QB data must be preserved. Log error, print recovery instructions.
 
-## BUILD STATUS (updated 2026-03-04, session 7)
+## BUILD STATUS (updated 2026-03-04, session 9)
 
   Phase 0 — Migration:     7/7   ████████  COMPLETE
   Phase 1 — Foundation:    5/5   ████████  COMPLETE
   Phase 2 — Transactions:  4/4   ████████  COMPLETE
   Phase 3 — Documents:     3/3   ████████  COMPLETE
   Phase 4 — Payroll:       6/6   ████████  COMPLETE
-  Phase 5 — Tax Forms:     9/9   ████████  COMPLETE
-  Phase 6 — Reporting:     5/5   ████████  COMPLETE
+  Phase 5 — Tax Forms:    11/11  ████████  COMPLETE (+W-2, 1099-NEC)
+  Phase 6 — Reporting:     7/7   ████████  COMPLETE (+AR/AP Aging)
   Phase 7 — Operations:    4/4   ████████  COMPLETE
-  TOTAL: 34/34 backend modules complete — ALL PHASES COMPLETE
+  Phase 8 — Feature Gaps:  4/4   ████████  COMPLETE (W-2, 1099, Aging, Checks)
+  TOTAL: 38/38 backend modules complete — ALL PHASES COMPLETE
 
-  Frontend Phase 1 — Priority Workflows:  IN PROGRESS
+  Frontend Phase 1 — Priority Workflows:  COMPLETE
     [x] Shared components (Modal, DataTable, FormField, Toast, Tabs, etc.)
     [x] Utility helpers (format.js — currency, dates, entity types)
     [x] React Query hooks (useApiQuery, useApiMutation)
@@ -226,24 +237,67 @@ Examples:
 ## ENVIRONMENT NOTES
 - Python: 3.14.2 (venv at backend/.venv)
 - PostgreSQL: local, role 'postgres', database 'ga_cpa'
-- DB connection: postgresql+asyncpg://postgres:postgres@localhost:5432/ga_cpa
-- Schema: 26 tables, 1 view, 24 audit triggers, 87 seed CoA entries
-- Backend tests: 588 passing, 0 xfailed
+- DB connection: see backend/.env (password changed from default)
+- Schema: 27 tables, 1 view, 25 audit triggers, 87 seed CoA entries
+- DB migration 003: employee address, vendor 1099, check sequences
+- Backend tests: 658 passing, 0 xfailed
 - Frontend: React 18.3 + Vite 6 + React Router 6 + React Query 5
-- Frontend build: 158 modules, 0 errors, vanilla CSS
+- Frontend build: 160 modules, 0 errors, vanilla CSS
 - Default user: edward@755mortgage.com / admin123 (CPA_OWNER)
 - Agent prompts: see AGENT_PROMPTS/ (not in this file)
 
+## DEPLOYMENT (updated 2026-03-04, session 8)
+- Platform: macOS (Darwin 24.6.0, Apple Silicon)
+- Reverse proxy: nginx via Homebrew, HTTPS with self-signed cert
+- Backend service: launchd (com.gacpa.backend) — auto-start, auto-restart
+- Nightly backup: launchd (com.gacpa.backup) — 2:00 AM, 30-day retention
+- Access: https://localhost (local), https://192.168.1.104 (LAN)
+- Deploy scripts: deploy/setup.sh (install), deploy/teardown.sh (uninstall)
+- Logs: deploy/logs/ (backend, nginx, backup)
+- Certs: deploy/certs/ (self-signed, 10-year validity)
+- Test data seed: backend/scripts/seed_test_data.py (--reset to wipe+reseed)
+
 ## NEXT TASKS
-ALL 34 BACKEND MODULES COMPLETE. Frontend Phase 1 complete.
+ALL 38 BACKEND MODULES COMPLETE. Frontend Phase 1 complete.
+Deployment complete (macOS launchd + nginx HTTPS + nightly backup).
+Security hardening complete (strong JWT secret, DB password changed, .env locked).
+Test data seeded (4 clients, all entity types, all workflow statuses).
+Feature gaps closed: W-2, 1099-NEC, AR/AP Aging, Check Printing (Phase 8).
 
 Remaining work:
 1. CPA_OWNER review of all 11 open compliance flags (OPEN_ISSUES.md)
 2. End-to-end integration testing with real QBO export data
-3. Frontend Phase 2: remaining pages (Bank Recon, Documents, Employees,
-   Payroll, Reports, Tax Exports) — pages exist but need API integration
-4. Production deployment preparation
+3. Team onboarding: create ASSOCIATE accounts, migrate first real client
+4. Trust self-signed cert on team machines (see deploy notes)
+5. Frontend pages for new features (W-2/1099 export, aging reports, check printing)
 
 ## OPEN COMPLIANCE FLAGS
 11 open issues (#1-#11) — all TY2026 rate verification.
 See OPEN_ISSUES.md for details.
+
+## PHASE 8 — FEATURE GAP DETAILS (added 2026-03-04)
+
+### W-2 Generation (X10/FG1)
+- Endpoints: GET /api/v1/tax/clients/{id}/w2, w2/{emp}/pdf, w2/pdf
+- Service: app/services/payroll/w2_generator.py
+- Pay date method, SS wage base capped, substitute form label
+- COMPLIANCE REVIEW NEEDED: Verify 2026 SS wage base ($168,600)
+
+### 1099-NEC Generation (X11/FG2)
+- Endpoints: GET /api/v1/tax/clients/{id}/1099-nec, 1099-nec/{v}/pdf, 1099-nec/pdf
+- Service: app/services/tax_exports_1099.py
+- $600 IRS threshold, only 1099-eligible vendors, substitute form label
+
+### AR/AP Aging Reports (R6-R7/FG3)
+- Endpoints: GET /api/v1/reports/clients/{id}/ar-aging, ar-aging/pdf, ap-aging, ap-aging/pdf
+- Service: app/services/aging.py
+- Buckets: Current, 1-30, 31-60, 61-90, 90+
+- AR: SENT/OVERDUE invoices; AP: APPROVED bills
+
+### Check Printing (FG4)
+- Endpoints: POST .../bills/{id}/payments/{pid}/print-check
+- Sequence: GET/PUT /api/v1/clients/{id}/check-sequence
+- Service: app/services/check_printing.py, app/services/check_sequence.py
+- Auto-increment from 1001, atomic via INSERT ON CONFLICT
+- Reprint uses same check_number (no double-allocation)
+- Migration: db/migrations/003_w2_1099_aging_checks.sql

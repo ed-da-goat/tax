@@ -91,6 +91,7 @@ class BillPaymentResponse(RecordSchema):
     amount: Decimal
     payment_method: str | None = None
     reference_number: str | None = None
+    check_number: int | None = None
 
 
 class BillResponse(RecordSchema):

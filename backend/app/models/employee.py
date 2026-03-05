@@ -83,3 +83,7 @@ class Employee(Base, TimestampMixin, SoftDeleteMixin):
     is_active: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default=text("true"),
     )
+    address: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    city: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    state: Mapped[str | None] = mapped_column(String(2), nullable=True)
+    zip: Mapped[str | None] = mapped_column(String(10), nullable=True)

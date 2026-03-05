@@ -17,6 +17,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import CurrentUser, require_role, verify_role
 from app.database import get_db
+from fastapi.responses import Response
+
+from app.schemas.form_1099 import Form1099NECSummaryResponse
 from app.schemas.tax_exports import (
     Form1065Data,
     Form1120Data,
@@ -28,6 +31,8 @@ from app.schemas.tax_exports import (
     ScheduleCData,
     TaxDocumentChecklist,
 )
+from app.schemas.w2 import W2SummaryResponse
+from app.services.payroll.w2_generator import W2GeneratorService
 from app.services.tax_exports import (
     Form1065Service,
     Form1120SService,
@@ -39,6 +44,7 @@ from app.services.tax_exports import (
     ScheduleCService,
     TaxChecklistService,
 )
+from app.services.tax_exports_1099 import Form1099NECService
 
 router = APIRouter()
 
@@ -233,3 +239,143 @@ async def get_tax_checklist(
     """Generate per-client tax document checklist by entity type. CPA_OWNER only."""
     verify_role(user, "CPA_OWNER")
     return await TaxChecklistService.generate(db, client_id, tax_year)
+
+
+# ---------------------------------------------------------------------------
+# W-2 Generation
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/clients/{client_id}/w2",
+    response_model=W2SummaryResponse,
+    summary="Generate W-2 data for all employees",
+)
+async def get_w2_data(
+    client_id: uuid.UUID,
+    tax_year: int = Query(..., ge=2020, le=2030),
+    db: AsyncSession = Depends(get_db),
+    user: CurrentUser = Depends(require_role("CPA_OWNER")),
+) -> W2SummaryResponse:
+    """Generate W-2 data for all employees of a client. CPA_OWNER only."""
+    verify_role(user, "CPA_OWNER")
+    return await W2GeneratorService.get_w2_data(db, client_id, tax_year)
+
+
+@router.get(
+    "/clients/{client_id}/w2/{employee_id}/pdf",
+    summary="Generate single W-2 PDF",
+    response_class=Response,
+)
+async def get_w2_pdf(
+    client_id: uuid.UUID,
+    employee_id: uuid.UUID,
+    tax_year: int = Query(..., ge=2020, le=2030),
+    db: AsyncSession = Depends(get_db),
+    user: CurrentUser = Depends(require_role("CPA_OWNER")),
+) -> Response:
+    """Generate a single employee W-2 PDF. CPA_OWNER only."""
+    verify_role(user, "CPA_OWNER")
+    summary = await W2GeneratorService.get_w2_data(db, client_id, tax_year)
+    w2 = next((w for w in summary.w2s if w.employee_id == employee_id), None)
+    if w2 is None:
+        from fastapi import HTTPException, status
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No W-2 data for this employee")
+    pdf_bytes = W2GeneratorService.generate_w2_pdf(w2, summary.employer_name, summary.employer_address)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename=w2_{employee_id}_{tax_year}.pdf"},
+    )
+
+
+@router.get(
+    "/clients/{client_id}/w2/pdf",
+    summary="Generate batch W-2 PDF for all employees",
+    response_class=Response,
+)
+async def get_w2_batch_pdf(
+    client_id: uuid.UUID,
+    tax_year: int = Query(..., ge=2020, le=2030),
+    db: AsyncSession = Depends(get_db),
+    user: CurrentUser = Depends(require_role("CPA_OWNER")),
+) -> Response:
+    """Generate batch W-2 PDF for all employees. CPA_OWNER only."""
+    verify_role(user, "CPA_OWNER")
+    summary = await W2GeneratorService.get_w2_data(db, client_id, tax_year)
+    pdf_bytes = W2GeneratorService.generate_batch_w2_pdf(summary)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename=w2_batch_{client_id}_{tax_year}.pdf"},
+    )
+
+
+# ---------------------------------------------------------------------------
+# 1099-NEC Generation
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/clients/{client_id}/1099-nec",
+    response_model=Form1099NECSummaryResponse,
+    summary="Generate 1099-NEC data for eligible vendors",
+)
+async def get_1099_nec_data(
+    client_id: uuid.UUID,
+    tax_year: int = Query(..., ge=2020, le=2030),
+    db: AsyncSession = Depends(get_db),
+    user: CurrentUser = Depends(require_role("CPA_OWNER")),
+) -> Form1099NECSummaryResponse:
+    """Generate 1099-NEC data for all eligible vendors. CPA_OWNER only."""
+    verify_role(user, "CPA_OWNER")
+    return await Form1099NECService.get_1099_data(db, client_id, tax_year)
+
+
+@router.get(
+    "/clients/{client_id}/1099-nec/{vendor_id}/pdf",
+    summary="Generate single 1099-NEC PDF",
+    response_class=Response,
+)
+async def get_1099_nec_pdf(
+    client_id: uuid.UUID,
+    vendor_id: uuid.UUID,
+    tax_year: int = Query(..., ge=2020, le=2030),
+    db: AsyncSession = Depends(get_db),
+    user: CurrentUser = Depends(require_role("CPA_OWNER")),
+) -> Response:
+    """Generate a single vendor 1099-NEC PDF. CPA_OWNER only."""
+    verify_role(user, "CPA_OWNER")
+    summary = await Form1099NECService.get_1099_data(db, client_id, tax_year)
+    form = next((f for f in summary.forms if f.vendor_id == vendor_id), None)
+    if form is None:
+        from fastapi import HTTPException, status
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No 1099-NEC data for this vendor")
+    pdf_bytes = Form1099NECService.generate_1099_pdf(form, summary.payer_name, summary.payer_address)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename=1099nec_{vendor_id}_{tax_year}.pdf"},
+    )
+
+
+@router.get(
+    "/clients/{client_id}/1099-nec/pdf",
+    summary="Generate batch 1099-NEC PDF for all eligible vendors",
+    response_class=Response,
+)
+async def get_1099_nec_batch_pdf(
+    client_id: uuid.UUID,
+    tax_year: int = Query(..., ge=2020, le=2030),
+    db: AsyncSession = Depends(get_db),
+    user: CurrentUser = Depends(require_role("CPA_OWNER")),
+) -> Response:
+    """Generate batch 1099-NEC PDF for all eligible vendors. CPA_OWNER only."""
+    verify_role(user, "CPA_OWNER")
+    summary = await Form1099NECService.get_1099_data(db, client_id, tax_year)
+    pdf_bytes = Form1099NECService.generate_batch_1099_pdf(summary)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename=1099nec_batch_{client_id}_{tax_year}.pdf"},
+    )

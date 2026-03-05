@@ -8,7 +8,7 @@ Compliance (CLAUDE.md rule #2): Soft deletes only via deleted_at.
 
 import uuid
 
-from sqlalchemy import ForeignKey, LargeBinary, String, text
+from sqlalchemy import Boolean, ForeignKey, LargeBinary, String, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -47,3 +47,6 @@ class Vendor(Base, TimestampMixin, SoftDeleteMixin):
     zip: Mapped[str | None] = mapped_column(String(10), nullable=True)
     phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
     email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    is_1099_eligible: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("false"), default=False,
+    )

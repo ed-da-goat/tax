@@ -22,12 +22,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import CurrentUser, get_current_user, require_role, verify_role
 from app.database import get_db
+from app.schemas.aging import APAgingReport, ARAgingReport
 from app.schemas.reporting import (
     BalanceSheetReport,
     CashFlowReport,
     FirmDashboard,
     ProfitLossReport,
 )
+from app.services.aging import AgingService
 from app.services.reporting import ReportingService
 
 router = APIRouter()
@@ -186,3 +188,95 @@ async def get_firm_dashboard(
 ) -> FirmDashboard:
     """Get aggregated metrics across all active clients. Both roles allowed."""
     return await ReportingService.get_firm_dashboard(db, period_start, period_end)
+
+
+# ---------------------------------------------------------------------------
+# AR Aging Report
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/clients/{client_id}/ar-aging",
+    response_model=ARAgingReport,
+    summary="Generate AR Aging Report",
+)
+async def get_ar_aging(
+    client_id: uuid.UUID,
+    as_of_date: date = Query(default=None, description="As-of date (defaults to today)"),
+    db: AsyncSession = Depends(get_db),
+    user: CurrentUser = Depends(get_current_user),
+) -> ARAgingReport:
+    """Generate AR aging report. Both roles allowed."""
+    if as_of_date is None:
+        as_of_date = date.today()
+    return await AgingService.get_ar_aging(db, client_id, as_of_date)
+
+
+@router.get(
+    "/clients/{client_id}/ar-aging/pdf",
+    summary="Export AR Aging Report as PDF",
+    response_class=Response,
+)
+async def export_ar_aging_pdf(
+    client_id: uuid.UUID,
+    as_of_date: date = Query(default=None),
+    db: AsyncSession = Depends(get_db),
+    user: CurrentUser = Depends(require_role("CPA_OWNER")),
+) -> Response:
+    """Export AR Aging as PDF. CPA_OWNER only."""
+    verify_role(user, "CPA_OWNER")
+    if as_of_date is None:
+        as_of_date = date.today()
+    report = await AgingService.get_ar_aging(db, client_id, as_of_date)
+    pdf_bytes = await AgingService.generate_aging_pdf(report)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename=ar_aging_{client_id}_{as_of_date}.pdf"},
+    )
+
+
+# ---------------------------------------------------------------------------
+# AP Aging Report
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/clients/{client_id}/ap-aging",
+    response_model=APAgingReport,
+    summary="Generate AP Aging Report",
+)
+async def get_ap_aging(
+    client_id: uuid.UUID,
+    as_of_date: date = Query(default=None, description="As-of date (defaults to today)"),
+    db: AsyncSession = Depends(get_db),
+    user: CurrentUser = Depends(get_current_user),
+) -> APAgingReport:
+    """Generate AP aging report. Both roles allowed."""
+    if as_of_date is None:
+        as_of_date = date.today()
+    return await AgingService.get_ap_aging(db, client_id, as_of_date)
+
+
+@router.get(
+    "/clients/{client_id}/ap-aging/pdf",
+    summary="Export AP Aging Report as PDF",
+    response_class=Response,
+)
+async def export_ap_aging_pdf(
+    client_id: uuid.UUID,
+    as_of_date: date = Query(default=None),
+    db: AsyncSession = Depends(get_db),
+    user: CurrentUser = Depends(require_role("CPA_OWNER")),
+) -> Response:
+    """Export AP Aging as PDF. CPA_OWNER only."""
+    verify_role(user, "CPA_OWNER")
+    if as_of_date is None:
+        as_of_date = date.today()
+    report = await AgingService.get_ap_aging(db, client_id, as_of_date)
+    pdf_bytes = await AgingService.generate_aging_pdf(report)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename=ap_aging_{client_id}_{as_of_date}.pdf"},
+    )

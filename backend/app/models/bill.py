@@ -13,7 +13,7 @@ import uuid
 from datetime import date
 from decimal import Decimal
 
-from sqlalchemy import Date, Enum, ForeignKey, Numeric, String, Text, text
+from sqlalchemy import Date, Enum, ForeignKey, Integer, Numeric, String, Text, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -151,6 +151,8 @@ class BillPayment(Base, TimestampMixin, SoftDeleteMixin):
     )
     payment_method: Mapped[str | None] = mapped_column(String(50), nullable=True)
     reference_number: Mapped[str | None] = mapped_column(String(100), nullable=True)
+
+    check_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     # Relationships
     bill: Mapped["Bill"] = relationship("Bill", back_populates="payments")

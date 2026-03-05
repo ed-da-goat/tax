@@ -55,6 +55,13 @@ def register_routers(app: FastAPI) -> None:
         tags=["bills"],
     )
 
+    from app.routers.check_sequence import router as check_seq_router
+    app.include_router(
+        check_seq_router,
+        prefix="/api/v1/clients/{client_id}/check-sequence",
+        tags=["check-sequence"],
+    )
+
     from app.routers.invoices import router as invoices_router
     app.include_router(
         invoices_router,

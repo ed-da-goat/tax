@@ -25,6 +25,7 @@ class VendorCreate(BaseSchema):
     zip: str | None = Field(None, max_length=10)
     phone: str | None = Field(None, max_length=20)
     email: EmailStr | None = None
+    is_1099_eligible: bool = False
 
 
 class VendorUpdate(BaseSchema):
@@ -37,6 +38,7 @@ class VendorUpdate(BaseSchema):
     zip: str | None = Field(None, max_length=10)
     phone: str | None = Field(None, max_length=20)
     email: EmailStr | None = None
+    is_1099_eligible: bool | None = None
 
 
 class VendorResponse(RecordSchema):
@@ -50,6 +52,7 @@ class VendorResponse(RecordSchema):
     zip: str | None = None
     phone: str | None = None
     email: str | None = None
+    is_1099_eligible: bool = False
     deleted_at: datetime | None = None
 
 

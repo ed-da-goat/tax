@@ -24,6 +24,7 @@ from app.models.document import Document
 from app.models.employee import Employee, FilingStatus, PayType
 from app.models.payroll import PayrollRun, PayrollItem, PayrollRunStatus
 from app.models.payroll_tax_table import PayrollTaxTable
+from app.models.check_sequence import ClientCheckSequence
 
 __all__ = [
     "Base", "TimestampMixin", "SoftDeleteMixin",
@@ -40,4 +41,5 @@ __all__ = [
     "Employee", "FilingStatus", "PayType",
     "PayrollRun", "PayrollItem", "PayrollRunStatus",
     "PayrollTaxTable",
+    "ClientCheckSequence",
 ]

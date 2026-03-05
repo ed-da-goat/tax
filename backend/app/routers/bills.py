@@ -20,11 +20,13 @@ from datetime import date
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import CurrentUser, get_current_user, require_role
+from app.auth.dependencies import CurrentUser, get_current_user, require_role, verify_role
 from app.database import get_db
 from app.models.bill import BillStatus
+from app.schemas import BaseSchema
 from app.schemas.bill import (
     BillCreate,
     BillList,
@@ -33,6 +35,8 @@ from app.schemas.bill import (
     BillStatus as BillStatusSchema,
 )
 from app.services.bill import BillService
+from app.services.check_printing import CheckData, CheckPrintingService
+from app.services.check_sequence import CheckSequenceService
 
 router = APIRouter()
 
@@ -174,3 +178,88 @@ async def void_bill(
             detail="Bill not found",
         )
     return BillResponse.model_validate(bill)
+
+
+# ---------------------------------------------------------------------------
+# Check Printing Endpoints
+# ---------------------------------------------------------------------------
+
+
+class CheckSequenceResponse(BaseSchema):
+    """Current check sequence for a client."""
+    client_id: UUID
+    next_check_number: int
+
+
+class CheckSequenceUpdate(BaseSchema):
+    """Set the next check number."""
+    next_check_number: int
+
+
+@router.post(
+    "/{bill_id}/payments/{payment_id}/print-check",
+    summary="Print check for a bill payment",
+    response_class=Response,
+)
+async def print_check(
+    client_id: UUID,
+    bill_id: UUID,
+    payment_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_role("CPA_OWNER")),
+) -> Response:
+    """
+    Generate a printable check PDF from a bill payment. CPA_OWNER only.
+
+    If the payment already has a check_number, reprints with the same number.
+    Otherwise, allocates the next check number atomically.
+    """
+    verify_role(current_user, "CPA_OWNER")
+
+    bill = await BillService.get_bill(db, client_id, bill_id)
+    if bill is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bill not found")
+
+    payment = next((p for p in bill.payments if p.id == payment_id and p.deleted_at is None), None)
+    if payment is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Payment not found")
+
+    # Reprint existing or allocate new check number
+    if payment.check_number is not None:
+        check_num = payment.check_number
+    else:
+        check_num = await CheckSequenceService.get_next_check_number(db, client_id)
+        payment.check_number = check_num
+        await db.commit()
+
+    # Get client and vendor info for the check
+    from sqlalchemy import text as sql_text
+    client_result = await db.execute(
+        sql_text("SELECT name, address, city, state, zip FROM clients WHERE id = :cid"),
+        {"cid": str(client_id)},
+    )
+    client_row = client_result.one()
+    addr_parts = [p for p in [client_row.address, client_row.city, client_row.state, client_row.zip] if p]
+
+    vendor_result = await db.execute(
+        sql_text("SELECT name FROM vendors WHERE id = :vid"),
+        {"vid": str(bill.vendor_id)},
+    )
+    vendor_row = vendor_result.one()
+
+    check_data = CheckData(
+        payer_name=client_row.name,
+        payer_address=", ".join(addr_parts) if addr_parts else None,
+        payee_name=vendor_row.name,
+        check_number=check_num,
+        check_date=payment.payment_date,
+        amount=payment.amount,
+        memo=f"Bill #{bill.bill_number}" if bill.bill_number else None,
+    )
+
+    pdf_bytes = CheckPrintingService.generate_check_pdf(check_data)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename=check_{check_num}.pdf"},
+    )
