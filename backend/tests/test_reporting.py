@@ -453,7 +453,6 @@ class TestHTMLRendering:
 class TestPDFExport:
 
     @pytest.mark.asyncio
-    @pytest.mark.xfail(reason="WeasyPrint requires libpango system library — install with: brew install pango")
     async def test_pnl_pdf_generation(self, db_session: AsyncSession):
         client_id = await _create_client(db_session)
         report = await ReportingService.get_profit_loss(
@@ -466,7 +465,6 @@ class TestPDFExport:
         assert pdf_bytes[:5] == b"%PDF-"
 
     @pytest.mark.asyncio
-    @pytest.mark.xfail(reason="WeasyPrint requires libpango system library — install with: brew install pango")
     async def test_balance_sheet_pdf(self, db_session: AsyncSession):
         client_id = await _create_client(db_session)
         report = await ReportingService.get_balance_sheet(
@@ -476,7 +474,6 @@ class TestPDFExport:
         assert pdf_bytes[:5] == b"%PDF-"
 
     @pytest.mark.asyncio
-    @pytest.mark.xfail(reason="WeasyPrint requires libpango system library — install with: brew install pango")
     async def test_cash_flow_pdf(self, db_session: AsyncSession):
         client_id = await _create_client(db_session)
         report = await ReportingService.get_cash_flow(
