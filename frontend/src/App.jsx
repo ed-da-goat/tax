@@ -15,6 +15,16 @@ import Employees from './pages/Employees';
 import Payroll from './pages/Payroll';
 import Reports from './pages/Reports';
 import TaxExports from './pages/TaxExports';
+import TimeTracking from './pages/TimeTracking';
+import Workflows from './pages/Workflows';
+import ServiceBilling from './pages/ServiceBilling';
+import Engagements from './pages/Engagements';
+import Contacts from './pages/Contacts';
+import ClientPortal from './pages/ClientPortal';
+import FixedAssets from './pages/FixedAssets';
+import Budgets from './pages/Budgets';
+import FirmAnalytics from './pages/FirmAnalytics';
+import DueDates from './pages/DueDates';
 
 export default function App() {
   return (
@@ -42,6 +52,16 @@ export default function App() {
         <Route path="/payroll" element={<Payroll />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/tax-exports" element={<TaxExports />} />
+        <Route path="/time-tracking" element={<TimeTracking />} />
+        <Route path="/workflows" element={<Workflows />} />
+        <Route path="/service-billing" element={<ServiceBilling />} />
+        <Route path="/engagements" element={<Engagements />} />
+        <Route path="/contacts" element={<Contacts />} />
+        <Route path="/portal" element={<ClientPortal />} />
+        <Route path="/fixed-assets" element={<FixedAssets />} />
+        <Route path="/budgets" element={<Budgets />} />
+        <Route path="/analytics" element={<FirmAnalytics />} />
+        <Route path="/due-dates" element={<DueDates />} />
       </Route>
 
       {/* Default redirect */}

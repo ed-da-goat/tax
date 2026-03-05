@@ -131,3 +131,70 @@ def register_routers(app: FastAPI) -> None:
         prefix="/api/v1/clients/{client_id}/tax-filings",
         tags=["tax-filing"],
     )
+
+    # --- Phase 9 routers (Time Tracking & Billing) ---
+    from app.routers.time_tracking import router as time_tracking_router
+    app.include_router(
+        time_tracking_router,
+        prefix="/api/v1",
+        tags=["time-tracking"],
+    )
+
+    from app.routers.service_billing import router as service_billing_router
+    app.include_router(
+        service_billing_router,
+        prefix="/api/v1/service-invoices",
+        tags=["service-billing"],
+    )
+
+    from app.routers.engagements import router as engagements_router
+    app.include_router(
+        engagements_router,
+        prefix="/api/v1/engagements",
+        tags=["engagements"],
+    )
+
+    from app.routers.contacts import router as contacts_router
+    app.include_router(
+        contacts_router,
+        prefix="/api/v1/contacts",
+        tags=["contacts"],
+    )
+
+    # --- Phase 10 routers (Workflow Engine) ---
+    from app.routers.workflows import router as workflows_router
+    app.include_router(
+        workflows_router,
+        prefix="/api/v1",
+        tags=["workflows"],
+    )
+
+    # --- Phase 11 routers (Client Portal) ---
+    from app.routers.portal import router as portal_router
+    app.include_router(
+        portal_router,
+        prefix="/api/v1",
+        tags=["portal"],
+    )
+
+    # --- Phase 12 routers (Analytics & Advanced) ---
+    from app.routers.firm_analytics import router as analytics_router
+    app.include_router(
+        analytics_router,
+        prefix="/api/v1/analytics",
+        tags=["analytics"],
+    )
+
+    from app.routers.fixed_assets import router as fixed_assets_router
+    app.include_router(
+        fixed_assets_router,
+        prefix="/api/v1/clients/{client_id}/fixed-assets",
+        tags=["fixed-assets"],
+    )
+
+    from app.routers.budgets import router as budgets_router
+    app.include_router(
+        budgets_router,
+        prefix="/api/v1/clients/{client_id}/budgets",
+        tags=["budgets"],
+    )

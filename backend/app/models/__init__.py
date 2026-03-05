@@ -29,6 +29,24 @@ from app.models.employee_bank_account import EmployeeBankAccount, AccountType, P
 from app.models.direct_deposit_batch import DirectDepositBatch, DDBatchStatus
 from app.models.tax_filing import TaxFilingSubmission, TaxFilingStatus, TaxFilingProvider
 
+# Phase 9-12 models
+from app.models.time_entry import TimeEntry, TimeEntryStatus, StaffRate, TimerSession
+from app.models.service_invoice import ServiceInvoice, ServiceInvoiceLine, ServiceInvoicePayment, ServiceInvoiceStatus, PaymentMethod
+from app.models.engagement import Engagement, EngagementStatus
+from app.models.contact import Contact
+from app.models.workflow import (
+    Workflow, WorkflowStatus, WorkflowStage, WorkflowTask, TaskStatusEnum,
+    TaskPriority, RecurrenceType, TaskComment, Reminder, ReminderType,
+    ReminderChannel, DueDate,
+)
+from app.models.portal import (
+    PortalUser, Message, MessageAttachment, Questionnaire, QuestionnaireStatus,
+    QuestionnaireQuestion, QuestionType, QuestionnaireResponse,
+    SignatureRequest, SignatureStatus,
+)
+from app.models.fixed_asset import FixedAsset, DepreciationEntry, DepreciationMethod, AssetStatus
+from app.models.budget import Budget, BudgetLine
+
 __all__ = [
     "Base", "TimestampMixin", "SoftDeleteMixin",
     "Client", "EntityType",
@@ -48,4 +66,17 @@ __all__ = [
     "EmployeeBankAccount", "AccountType", "PrenoteStatus",
     "DirectDepositBatch", "DDBatchStatus",
     "TaxFilingSubmission", "TaxFilingStatus", "TaxFilingProvider",
+    # Phase 9-12
+    "TimeEntry", "TimeEntryStatus", "StaffRate", "TimerSession",
+    "ServiceInvoice", "ServiceInvoiceLine", "ServiceInvoicePayment", "ServiceInvoiceStatus", "PaymentMethod",
+    "Engagement", "EngagementStatus",
+    "Contact",
+    "Workflow", "WorkflowStatus", "WorkflowStage", "WorkflowTask", "TaskStatusEnum",
+    "TaskPriority", "RecurrenceType", "TaskComment", "Reminder", "ReminderType",
+    "ReminderChannel", "DueDate",
+    "PortalUser", "Message", "MessageAttachment", "Questionnaire", "QuestionnaireStatus",
+    "QuestionnaireQuestion", "QuestionType", "QuestionnaireResponse",
+    "SignatureRequest", "SignatureStatus",
+    "FixedAsset", "DepreciationEntry", "DepreciationMethod", "AssetStatus",
+    "Budget", "BudgetLine",
 ]
