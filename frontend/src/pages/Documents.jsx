@@ -86,7 +86,12 @@ export default function Documents() {
       const url = window.URL.createObjectURL(new Blob([res.data], { type: doc.file_type || 'application/pdf' }));
       window.open(url, '_blank');
     } catch (e) {
-      setError(e.response?.data?.detail || 'View failed');
+      if (e.response?.data instanceof Blob) {
+        const text = await e.response.data.text();
+        try { setError(JSON.parse(text).detail); } catch { setError(text || 'View failed'); }
+      } else {
+        setError(e.response?.data?.detail || 'View failed');
+      }
     }
   };
 

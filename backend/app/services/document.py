@@ -80,9 +80,20 @@ class DocumentService:
         unique_name = f"{name_base}_{uuid.uuid4().hex[:8]}{ext}"
         file_path = os.path.join(client_dir, unique_name)
 
-        # Write file to disk
+        # Read file content with size limit (50 MB max)
+        MAX_FILE_SIZE = 50 * 1024 * 1024
         content = await file.read()
         file_size = len(content)
+        if file_size > MAX_FILE_SIZE:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"File too large ({file_size // (1024*1024)} MB). Maximum is 50 MB.",
+            )
+        if file_size == 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Empty file. Please select a valid document.",
+            )
 
         with open(file_path, "wb") as f:
             f.write(content)
@@ -249,4 +260,6 @@ class DocumentService:
         project_root = os.path.dirname(
             os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         )
-        return os.path.join(project_root, document.file_path)
+        # Strip leading / so os.path.join works correctly with project_root
+        rel_path = document.file_path.lstrip("/")
+        return os.path.join(project_root, rel_path)
