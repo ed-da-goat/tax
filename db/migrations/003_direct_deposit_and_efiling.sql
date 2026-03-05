@@ -11,7 +11,7 @@ BEGIN;
 -- ---------------------------------------------------------------------------
 -- ENUM types
 -- ---------------------------------------------------------------------------
-CREATE TYPE account_type AS ENUM ('CHECKING', 'SAVINGS');
+CREATE TYPE dd_account_type AS ENUM ('CHECKING', 'SAVINGS');
 CREATE TYPE dd_batch_status AS ENUM ('GENERATED', 'DOWNLOADED', 'SUBMITTED', 'CONFIRMED', 'FAILED');
 CREATE TYPE prenote_status AS ENUM ('PENDING', 'VERIFIED', 'FAILED');
 CREATE TYPE tax_filing_status AS ENUM ('DRAFT', 'SUBMITTED', 'ACCEPTED', 'REJECTED', 'ERROR');
@@ -31,7 +31,7 @@ CREATE TABLE employee_bank_accounts (
     account_holder_name     VARCHAR(255) NOT NULL,
     account_number_encrypted BYTEA NOT NULL,
     routing_number          VARCHAR(9) NOT NULL,
-    account_type            account_type NOT NULL DEFAULT 'CHECKING',
+    account_type            dd_account_type NOT NULL DEFAULT 'CHECKING',
     is_primary              BOOLEAN NOT NULL DEFAULT TRUE,
     -- Direct deposit enrollment tracking
     enrollment_date         DATE,
@@ -133,14 +133,14 @@ CREATE INDEX idx_tax_filing_provider ON tax_filing_submissions (provider) WHERE 
 -- ---------------------------------------------------------------------------
 CREATE TRIGGER audit_employee_bank_accounts
     AFTER INSERT OR UPDATE OR DELETE ON employee_bank_accounts
-    FOR EACH ROW EXECUTE FUNCTION audit_trigger_func();
+    FOR EACH ROW EXECUTE FUNCTION fn_audit_log();
 
 CREATE TRIGGER audit_direct_deposit_batches
     AFTER INSERT OR UPDATE OR DELETE ON direct_deposit_batches
-    FOR EACH ROW EXECUTE FUNCTION audit_trigger_func();
+    FOR EACH ROW EXECUTE FUNCTION fn_audit_log();
 
 CREATE TRIGGER audit_tax_filing_submissions
     AFTER INSERT OR UPDATE OR DELETE ON tax_filing_submissions
-    FOR EACH ROW EXECUTE FUNCTION audit_trigger_func();
+    FOR EACH ROW EXECUTE FUNCTION fn_audit_log();
 
 COMMIT;

@@ -73,7 +73,7 @@ class EmployeeBankAccount(Base, TimestampMixin, SoftDeleteMixin):
     account_type: Mapped[str] = mapped_column(
         Enum(
             "CHECKING", "SAVINGS",
-            name="account_type",
+            name="dd_account_type",
             create_type=False,
         ),
         nullable=False,

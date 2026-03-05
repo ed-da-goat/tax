@@ -116,16 +116,15 @@ class TestNACHAFileGenerator:
         content = generator.generate()
         header = content.strip().split("\n")[0]
 
-        # Record Type Code
-        assert header[0] == "1"
-        # Priority Code
-        assert header[1:3] == "01"
-        # Record Size
-        assert header[63:66] == "094"
-        # Blocking Factor
-        assert header[66:68] == "10"
-        # Format Code
-        assert header[68] == "1"
+        # NACHA File Header positions (0-indexed):
+        # 0: Record Type, 1-2: Priority, 3-12: Dest, 13-22: Origin,
+        # 23-28: Date, 29-32: Time, 33: File ID Mod,
+        # 34-36: Record Size, 37-38: Blocking Factor, 39: Format Code
+        assert header[0] == "1"          # Record Type Code
+        assert header[1:3] == "01"       # Priority Code
+        assert header[34:37] == "094"    # Record Size
+        assert header[37:39] == "10"     # Blocking Factor
+        assert header[39] == "1"         # Format Code
 
     def test_entry_detail_fields(self, generator, sample_entries):
         generator.add_batch(

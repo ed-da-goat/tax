@@ -86,7 +86,8 @@ class NACHAFileGenerator:
         file_id_modifier: str = "A",
         reference_code: str = "",
     ):
-        self._immediate_destination = immediate_destination.ljust(10)[:10]
+        # Immediate Destination: space + 9-digit routing = 10 chars total
+        self._immediate_destination = (" " + immediate_destination).ljust(10)[:10]
         self._immediate_origin = immediate_origin.ljust(10)[:10]
         self._destination_name = destination_name.ljust(23)[:23]
         self._origin_name = origin_name.ljust(23)[:23]
@@ -207,7 +208,7 @@ class NACHAFileGenerator:
         return self._pad(
             "1"                                          # Record Type Code
             + "01"                                       # Priority Code
-            + " " + self._immediate_destination          # Immediate Destination (b + 9 digits)
+            + self._immediate_destination                # Immediate Destination (b + 9 digits, 10 chars)
             + self._immediate_origin                     # Immediate Origin (10 chars)
             + self._file_creation_date.strftime("%y%m%d")  # File Creation Date
             + now.strftime("%H%M")                       # File Creation Time
