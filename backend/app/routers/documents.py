@@ -77,6 +77,46 @@ async def list_documents(
 
 
 @router.get(
+    "/search",
+    response_model=DocumentList,
+    summary="Search documents by client, date, type, and text (D3)",
+)
+async def search_documents(
+    client_id: uuid.UUID,
+    q: str | None = Query(None, description="Search in file_name and description"),
+    tags: str | None = Query(None, description="Comma-separated tags"),
+    file_type: str | None = Query(None),
+    date_from: str | None = Query(None, description="Filter by upload date (YYYY-MM-DD)"),
+    date_to: str | None = Query(None, description="Filter by upload date (YYYY-MM-DD)"),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
+    db: AsyncSession = Depends(get_db),
+    user: CurrentUser = Depends(get_current_user),
+) -> DocumentList:
+    """Search documents with text, tag, type, and date filters (module D3)."""
+    tag_list = [t.strip() for t in tags.split(",") if t.strip()] if tags else None
+
+    from datetime import date as date_type
+    d_from = date_type.fromisoformat(date_from) if date_from else None
+    d_to = date_type.fromisoformat(date_to) if date_to else None
+
+    docs, total = await DocumentService.search(
+        db, client_id,
+        query=q,
+        tags=tag_list,
+        file_type=file_type,
+        date_from=d_from,
+        date_to=d_to,
+        skip=skip,
+        limit=limit,
+    )
+    return DocumentList(
+        items=[DocumentResponse.model_validate(d) for d in docs],
+        total=total,
+    )
+
+
+@router.get(
     "/{document_id}",
     response_model=DocumentResponse,
     summary="Get document metadata",
@@ -153,46 +193,6 @@ async def view_document(
         path=file_path,
         media_type=doc.file_type or "application/octet-stream",
         headers={"Content-Disposition": f"inline; filename=\"{safe_filename}\""},
-    )
-
-
-@router.get(
-    "/search",
-    response_model=DocumentList,
-    summary="Search documents by client, date, type, and text (D3)",
-)
-async def search_documents(
-    client_id: uuid.UUID,
-    q: str | None = Query(None, description="Search in file_name and description"),
-    tags: str | None = Query(None, description="Comma-separated tags"),
-    file_type: str | None = Query(None),
-    date_from: str | None = Query(None, description="Filter by upload date (YYYY-MM-DD)"),
-    date_to: str | None = Query(None, description="Filter by upload date (YYYY-MM-DD)"),
-    skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=200),
-    db: AsyncSession = Depends(get_db),
-    user: CurrentUser = Depends(get_current_user),
-) -> DocumentList:
-    """Search documents with text, tag, type, and date filters (module D3)."""
-    tag_list = [t.strip() for t in tags.split(",") if t.strip()] if tags else None
-
-    from datetime import date as date_type
-    d_from = date_type.fromisoformat(date_from) if date_from else None
-    d_to = date_type.fromisoformat(date_to) if date_to else None
-
-    docs, total = await DocumentService.search(
-        db, client_id,
-        query=q,
-        tags=tag_list,
-        file_type=file_type,
-        date_from=d_from,
-        date_to=d_to,
-        skip=skip,
-        limit=limit,
-    )
-    return DocumentList(
-        items=[DocumentResponse.model_validate(d) for d in docs],
-        total=total,
     )
 
 
