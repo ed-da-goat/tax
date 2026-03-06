@@ -198,3 +198,50 @@ def register_routers(app: FastAPI) -> None:
         prefix="/api/v1/clients/{client_id}/budgets",
         tags=["budgets"],
     )
+
+    # --- Phase C routers (Year-End Close, Search) ---
+    from app.routers.year_end import router as year_end_router
+    app.include_router(
+        year_end_router,
+        prefix="/api/v1",
+        tags=["year-end"],
+    )
+
+    from app.routers.search import router as search_router
+    app.include_router(
+        search_router,
+        prefix="/api/v1",
+        tags=["search"],
+    )
+
+    # --- Phase E3 routers (Bulk Import) ---
+    from app.routers.bulk_import import router as bulk_import_router
+    app.include_router(
+        bulk_import_router,
+        prefix="/api/v1",
+        tags=["bulk-import"],
+    )
+
+    # --- Phase E5 routers (Soft Delete Restoration) ---
+    from app.routers.restore import router as restore_router
+    app.include_router(
+        restore_router,
+        prefix="/api/v1",
+        tags=["restore"],
+    )
+
+    # --- Phase C3 routers (Recurring Transactions) ---
+    from app.routers.recurring import router as recurring_router
+    app.include_router(
+        recurring_router,
+        prefix="/api/v1",
+        tags=["recurring"],
+    )
+
+    # --- Phase C5 routers (Client Statements) ---
+    from app.routers.statements import router as statements_router
+    app.include_router(
+        statements_router,
+        prefix="/api/v1",
+        tags=["statements"],
+    )

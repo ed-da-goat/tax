@@ -7,7 +7,7 @@ import Toast from '../components/Toast';
 import { formatCurrency, formatDate } from '../utils/format';
 
 const STATUS_COLORS = {
-  DRAFT: '#6B7280', SENT: '#3B82F6', VIEWED: '#8B5CF6', PAID: '#10B981',
+  DRAFT: '#6B7280', SENT: '#3d6d8e', VIEWED: '#8B5CF6', PAID: '#10B981',
   PARTIAL: '#F59E0B', OVERDUE: '#EF4444', VOID: '#9CA3AF',
 };
 
@@ -99,8 +99,7 @@ export default function ServiceBilling() {
 
       <DataTable columns={columns} rows={items} emptyMessage="No service invoices" />
 
-      {showAdd && (
-        <Modal title="New Service Invoice" onClose={() => setShowAdd(false)} wide>
+      <Modal isOpen={showAdd} title="New Service Invoice" onClose={() => setShowAdd(false)} size="lg">
           <form onSubmit={handleCreate}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
               <FormField label="Client" required>
@@ -131,11 +130,9 @@ export default function ServiceBilling() {
               <button type="submit" className="btn btn--primary" disabled={createInvoice.isPending}>Create</button>
             </div>
           </form>
-        </Modal>
-      )}
+      </Modal>
 
-      {showPayment && (
-        <Modal title="Record Payment" onClose={() => setShowPayment(null)}>
+      <Modal isOpen={!!showPayment} title="Record Payment" onClose={() => setShowPayment(null)}>
           <form onSubmit={handlePayment}>
             <FormField label="Payment Date" required>
               <input type="date" value={payForm.payment_date} onChange={e => setPayForm(f => ({ ...f, payment_date: e.target.value }))} required />
@@ -159,8 +156,7 @@ export default function ServiceBilling() {
               <button type="submit" className="btn btn--primary" disabled={recordPayment.isPending}>Record Payment</button>
             </div>
           </form>
-        </Modal>
-      )}
+      </Modal>
 
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
     </div>

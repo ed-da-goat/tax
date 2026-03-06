@@ -9,7 +9,7 @@ is_active, last_login_at, created_at, updated_at, deleted_at.
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Enum, String, text
+from sqlalchemy import Boolean, DateTime, Enum, String, Text, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -42,4 +42,7 @@ class User(Base, TimestampMixin, SoftDeleteMixin):
     )
     last_login_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True, default=None
+    )
+    totp_secret_encrypted: Mapped[str | None] = mapped_column(
+        Text, nullable=True, default=None
     )

@@ -31,7 +31,7 @@ class ClientCreate(BaseSchema):
 
     name: str = Field(..., min_length=1, max_length=255)
     entity_type: EntityType
-    tax_id_encrypted: bytes | None = None
+    tax_id: str | None = Field(None, max_length=20)
     address: str | None = Field(None, max_length=500)
     city: str | None = Field(None, max_length=100)
     state: str = Field(default="GA", max_length=2)
@@ -45,7 +45,7 @@ class ClientUpdate(BaseSchema):
 
     name: str | None = Field(None, min_length=1, max_length=255)
     entity_type: EntityType | None = None
-    tax_id_encrypted: bytes | None = None
+    tax_id: str | None = Field(None, max_length=20)
     address: str | None = Field(None, max_length=500)
     city: str | None = Field(None, max_length=100)
     state: str | None = Field(None, max_length=2)

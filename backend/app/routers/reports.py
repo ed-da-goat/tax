@@ -30,6 +30,11 @@ from app.schemas.reporting import (
     ProfitLossReport,
 )
 from app.services.aging import AgingService
+from app.services.export import (
+    rows_to_csv, rows_to_xlsx,
+    profit_loss_to_rows, balance_sheet_to_rows,
+    cash_flow_to_rows, ar_aging_to_rows, ap_aging_to_rows,
+)
 from app.services.reporting import ReportingService
 
 router = APIRouter()
@@ -279,4 +284,231 @@ async def export_ap_aging_pdf(
         content=pdf_bytes,
         media_type="application/pdf",
         headers={"Content-Disposition": f"attachment; filename=ap_aging_{client_id}_{as_of_date}.pdf"},
+    )
+
+
+# ---------------------------------------------------------------------------
+# CSV/XLSX Export Endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/clients/{client_id}/profit-loss/csv",
+    summary="Export Profit & Loss as CSV",
+    response_class=Response,
+)
+async def export_profit_loss_csv(
+    client_id: uuid.UUID,
+    period_start: date = Query(...),
+    period_end: date = Query(...),
+    db: AsyncSession = Depends(get_db),
+    user: CurrentUser = Depends(require_role("CPA_OWNER")),
+) -> Response:
+    verify_role(user, "CPA_OWNER")
+    report = await ReportingService.get_profit_loss(db, client_id, period_start, period_end)
+    headers, rows = profit_loss_to_rows(report)
+    return Response(
+        content=rows_to_csv(headers, rows),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=pnl_{client_id}_{period_start}_{period_end}.csv"},
+    )
+
+
+@router.get(
+    "/clients/{client_id}/profit-loss/xlsx",
+    summary="Export Profit & Loss as Excel",
+    response_class=Response,
+)
+async def export_profit_loss_xlsx(
+    client_id: uuid.UUID,
+    period_start: date = Query(...),
+    period_end: date = Query(...),
+    db: AsyncSession = Depends(get_db),
+    user: CurrentUser = Depends(require_role("CPA_OWNER")),
+) -> Response:
+    verify_role(user, "CPA_OWNER")
+    report = await ReportingService.get_profit_loss(db, client_id, period_start, period_end)
+    headers, rows = profit_loss_to_rows(report)
+    return Response(
+        content=rows_to_xlsx(headers, rows, "Profit & Loss"),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename=pnl_{client_id}_{period_start}_{period_end}.xlsx"},
+    )
+
+
+@router.get(
+    "/clients/{client_id}/balance-sheet/csv",
+    summary="Export Balance Sheet as CSV",
+    response_class=Response,
+)
+async def export_balance_sheet_csv(
+    client_id: uuid.UUID,
+    as_of_date: date = Query(...),
+    db: AsyncSession = Depends(get_db),
+    user: CurrentUser = Depends(require_role("CPA_OWNER")),
+) -> Response:
+    verify_role(user, "CPA_OWNER")
+    report = await ReportingService.get_balance_sheet(db, client_id, as_of_date)
+    headers, rows = balance_sheet_to_rows(report)
+    return Response(
+        content=rows_to_csv(headers, rows),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=bs_{client_id}_{as_of_date}.csv"},
+    )
+
+
+@router.get(
+    "/clients/{client_id}/balance-sheet/xlsx",
+    summary="Export Balance Sheet as Excel",
+    response_class=Response,
+)
+async def export_balance_sheet_xlsx(
+    client_id: uuid.UUID,
+    as_of_date: date = Query(...),
+    db: AsyncSession = Depends(get_db),
+    user: CurrentUser = Depends(require_role("CPA_OWNER")),
+) -> Response:
+    verify_role(user, "CPA_OWNER")
+    report = await ReportingService.get_balance_sheet(db, client_id, as_of_date)
+    headers, rows = balance_sheet_to_rows(report)
+    return Response(
+        content=rows_to_xlsx(headers, rows, "Balance Sheet"),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename=bs_{client_id}_{as_of_date}.xlsx"},
+    )
+
+
+@router.get(
+    "/clients/{client_id}/cash-flow/csv",
+    summary="Export Cash Flow Statement as CSV",
+    response_class=Response,
+)
+async def export_cash_flow_csv(
+    client_id: uuid.UUID,
+    period_start: date = Query(...),
+    period_end: date = Query(...),
+    db: AsyncSession = Depends(get_db),
+    user: CurrentUser = Depends(require_role("CPA_OWNER")),
+) -> Response:
+    verify_role(user, "CPA_OWNER")
+    report = await ReportingService.get_cash_flow(db, client_id, period_start, period_end)
+    headers, rows = cash_flow_to_rows(report)
+    return Response(
+        content=rows_to_csv(headers, rows),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=cf_{client_id}_{period_start}_{period_end}.csv"},
+    )
+
+
+@router.get(
+    "/clients/{client_id}/cash-flow/xlsx",
+    summary="Export Cash Flow Statement as Excel",
+    response_class=Response,
+)
+async def export_cash_flow_xlsx(
+    client_id: uuid.UUID,
+    period_start: date = Query(...),
+    period_end: date = Query(...),
+    db: AsyncSession = Depends(get_db),
+    user: CurrentUser = Depends(require_role("CPA_OWNER")),
+) -> Response:
+    verify_role(user, "CPA_OWNER")
+    report = await ReportingService.get_cash_flow(db, client_id, period_start, period_end)
+    headers, rows = cash_flow_to_rows(report)
+    return Response(
+        content=rows_to_xlsx(headers, rows, "Cash Flow"),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename=cf_{client_id}_{period_start}_{period_end}.xlsx"},
+    )
+
+
+@router.get(
+    "/clients/{client_id}/ar-aging/csv",
+    summary="Export AR Aging as CSV",
+    response_class=Response,
+)
+async def export_ar_aging_csv(
+    client_id: uuid.UUID,
+    as_of_date: date = Query(default=None),
+    db: AsyncSession = Depends(get_db),
+    user: CurrentUser = Depends(require_role("CPA_OWNER")),
+) -> Response:
+    verify_role(user, "CPA_OWNER")
+    if as_of_date is None:
+        as_of_date = date.today()
+    report = await AgingService.get_ar_aging(db, client_id, as_of_date)
+    headers, rows = ar_aging_to_rows(report)
+    return Response(
+        content=rows_to_csv(headers, rows),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=ar_aging_{client_id}_{as_of_date}.csv"},
+    )
+
+
+@router.get(
+    "/clients/{client_id}/ar-aging/xlsx",
+    summary="Export AR Aging as Excel",
+    response_class=Response,
+)
+async def export_ar_aging_xlsx(
+    client_id: uuid.UUID,
+    as_of_date: date = Query(default=None),
+    db: AsyncSession = Depends(get_db),
+    user: CurrentUser = Depends(require_role("CPA_OWNER")),
+) -> Response:
+    verify_role(user, "CPA_OWNER")
+    if as_of_date is None:
+        as_of_date = date.today()
+    report = await AgingService.get_ar_aging(db, client_id, as_of_date)
+    headers, rows = ar_aging_to_rows(report)
+    return Response(
+        content=rows_to_xlsx(headers, rows, "AR Aging"),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename=ar_aging_{client_id}_{as_of_date}.xlsx"},
+    )
+
+
+@router.get(
+    "/clients/{client_id}/ap-aging/csv",
+    summary="Export AP Aging as CSV",
+    response_class=Response,
+)
+async def export_ap_aging_csv(
+    client_id: uuid.UUID,
+    as_of_date: date = Query(default=None),
+    db: AsyncSession = Depends(get_db),
+    user: CurrentUser = Depends(require_role("CPA_OWNER")),
+) -> Response:
+    verify_role(user, "CPA_OWNER")
+    if as_of_date is None:
+        as_of_date = date.today()
+    report = await AgingService.get_ap_aging(db, client_id, as_of_date)
+    headers, rows = ap_aging_to_rows(report)
+    return Response(
+        content=rows_to_csv(headers, rows),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=ap_aging_{client_id}_{as_of_date}.csv"},
+    )
+
+
+@router.get(
+    "/clients/{client_id}/ap-aging/xlsx",
+    summary="Export AP Aging as Excel",
+    response_class=Response,
+)
+async def export_ap_aging_xlsx(
+    client_id: uuid.UUID,
+    as_of_date: date = Query(default=None),
+    db: AsyncSession = Depends(get_db),
+    user: CurrentUser = Depends(require_role("CPA_OWNER")),
+) -> Response:
+    verify_role(user, "CPA_OWNER")
+    if as_of_date is None:
+        as_of_date = date.today()
+    report = await AgingService.get_ap_aging(db, client_id, as_of_date)
+    headers, rows = ap_aging_to_rows(report)
+    return Response(
+        content=rows_to_xlsx(headers, rows, "AP Aging"),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename=ap_aging_{client_id}_{as_of_date}.xlsx"},
     )

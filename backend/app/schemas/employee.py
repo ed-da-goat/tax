@@ -26,6 +26,7 @@ class PayType(str, enum.Enum):
 class EmployeeCreate(BaseSchema):
     first_name: str = Field(..., min_length=1, max_length=100)
     last_name: str = Field(..., min_length=1, max_length=100)
+    ssn: str | None = Field(None, max_length=11)
     filing_status: FilingStatus = Field(default=FilingStatus.SINGLE)
     allowances: int = Field(default=0, ge=0)
     pay_rate: Decimal = Field(..., ge=0)
@@ -40,6 +41,7 @@ class EmployeeCreate(BaseSchema):
 class EmployeeUpdate(BaseSchema):
     first_name: str | None = Field(None, min_length=1, max_length=100)
     last_name: str | None = Field(None, min_length=1, max_length=100)
+    ssn: str | None = Field(None, max_length=11)
     filing_status: FilingStatus | None = None
     allowances: int | None = Field(None, ge=0)
     pay_rate: Decimal | None = Field(None, ge=0)

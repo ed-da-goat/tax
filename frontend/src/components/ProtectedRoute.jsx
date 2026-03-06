@@ -10,13 +10,18 @@ import useAuth from '../hooks/useAuth';
  *   children        -- the element tree to render when access is granted.
  *
  * Behaviour:
- *   - Not authenticated  --> redirect to /login (preserving intended URL).
- *   - Authenticated but wrong role --> redirect to /dashboard.
- *   - Authenticated with correct role --> render children.
+ *   - Session loading       --> show nothing (brief flash while /me resolves).
+ *   - Not authenticated     --> redirect to /login (preserving intended URL).
+ *   - Wrong role            --> redirect to /dashboard.
+ *   - Authenticated + role  --> render children.
  */
 export default function ProtectedRoute({ role, children }) {
-  const { isAuthenticated, hasRole } = useAuth();
+  const { isAuthenticated, hasRole, loading } = useAuth();
   const location = useLocation();
+
+  if (loading) {
+    return null;
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;

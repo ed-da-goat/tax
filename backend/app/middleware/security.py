@@ -22,43 +22,53 @@ logger = logging.getLogger("security")
 # Security Headers Middleware
 # ---------------------------------------------------------------------------
 
-class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+SECURITY_HEADERS: list[tuple[bytes, bytes]] = [
+    (b"x-content-type-options", b"nosniff"),
+    (b"x-frame-options", b"DENY"),
+    (b"x-xss-protection", b"1; mode=block"),
+    (b"referrer-policy", b"strict-origin-when-cross-origin"),
+    (b"permissions-policy", b"camera=(), microphone=(), geolocation=(), payment=()"),
+    (b"content-security-policy",
+     b"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+     b"img-src 'self' data:; frame-ancestors 'none'"),
+    (b"strict-transport-security", b"max-age=31536000; includeSubDomains"),
+]
+
+API_CACHE_HEADERS: list[tuple[bytes, bytes]] = [
+    (b"cache-control", b"no-store, no-cache, must-revalidate"),
+    (b"pragma", b"no-cache"),
+]
+
+
+class SecurityHeadersMiddleware:
     """
-    Injects security headers into every response.
+    Pure ASGI middleware that injects security headers into every response.
 
-    Headers added:
-    - X-Content-Type-Options: nosniff
-    - X-Frame-Options: DENY
-    - X-XSS-Protection: 1; mode=block
-    - Referrer-Policy: strict-origin-when-cross-origin
-    - Cache-Control: no-store (for API responses)
-    - Content-Security-Policy: restricts scripts, styles, frames
+    Uses raw ASGI instead of BaseHTTPMiddleware to preserve Set-Cookie
+    headers (BaseHTTPMiddleware wraps responses in StreamingResponse
+    which can strip cookies).
     """
 
-    async def dispatch(self, request: Request, call_next: Callable) -> Response:
-        response = await call_next(request)
+    def __init__(self, app):
+        self.app = app
 
-        response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["X-Frame-Options"] = "DENY"
-        response.headers["X-XSS-Protection"] = "1; mode=block"
-        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        response.headers["Permissions-Policy"] = (
-            "camera=(), microphone=(), geolocation=(), payment=()"
-        )
-        response.headers["Content-Security-Policy"] = (
-            "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
-            "img-src 'self' data:; frame-ancestors 'none'"
-        )
-        response.headers["Strict-Transport-Security"] = (
-            "max-age=31536000; includeSubDomains"
-        )
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
 
-        # Prevent caching of API responses (financial data)
-        if request.url.path.startswith("/api/"):
-            response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
-            response.headers["Pragma"] = "no-cache"
+        is_api = scope["path"].startswith("/api/")
 
-        return response
+        async def send_with_headers(message):
+            if message["type"] == "http.response.start":
+                headers = list(message.get("headers", []))
+                headers.extend(SECURITY_HEADERS)
+                if is_api:
+                    headers.extend(API_CACHE_HEADERS)
+                message = {**message, "headers": headers}
+            await send(message)
+
+        await self.app(scope, receive, send_with_headers)
 
 
 # ---------------------------------------------------------------------------

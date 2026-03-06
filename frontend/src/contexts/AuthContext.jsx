@@ -1,7 +1,7 @@
 import { createContext, useState, useCallback, useEffect } from 'react';
 import axios from 'axios';
 
-const API_BASE = 'http://localhost:8000';
+const API_BASE = import.meta.env.VITE_API_BASE || '';
 
 /**
  * Roles defined in CLAUDE.md:
@@ -13,57 +13,56 @@ export const ROLES = {
   ASSOCIATE: 'ASSOCIATE',
 };
 
-/**
- * Decode the payload of a JWT without verifying the signature.
- * Sufficient for reading role/expiry on the client side.
- */
-function decodeToken(token) {
-  try {
-    const payload = token.split('.')[1];
-    return JSON.parse(atob(payload));
-  } catch {
-    return null;
-  }
-}
-
 export const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState(() => localStorage.getItem('token'));
-  const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem('token');
-    return saved ? decodeToken(saved) : null;
-  });
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Keep user object in sync whenever the token changes
+  // On mount, check if we have a valid session by calling /api/v1/auth/me.
+  // The HTTP-Only cookie is sent automatically by the browser.
   useEffect(() => {
-    if (token) {
-      const decoded = decodeToken(token);
-      if (decoded && decoded.exp * 1000 > Date.now()) {
-        setUser(decoded);
-      } else {
-        // Token is expired -- clear it
-        logout();
-      }
-    }
-  }, [token]);
-
-  const login = useCallback(async (email, password) => {
-    const response = await axios.post(`${API_BASE}/api/v1/auth/login`, {
-      email,
-      password,
-    });
-    const { access_token } = response.data;
-    localStorage.setItem('token', access_token);
-    const decoded = decodeToken(access_token);
-    setUser(decoded);
-    setToken(access_token);
-    return decoded;
+    axios
+      .get(`${API_BASE}/api/v1/auth/me`, { withCredentials: true })
+      .then((res) => {
+        setUser(res.data);
+      })
+      .catch(() => {
+        setUser(null);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, []);
 
-  const logout = useCallback(() => {
-    localStorage.removeItem('token');
-    setToken(null);
+  const login = useCallback(async (email, password, totp_code) => {
+    const body = { email, password };
+    if (totp_code) body.totp_code = totp_code;
+    const response = await axios.post(
+      `${API_BASE}/api/v1/auth/login`,
+      body,
+      { withCredentials: true }
+    );
+    // Check if 2FA is required
+    if (response.data.requires_2fa) {
+      return { requires_2fa: true, user: response.data.user };
+    }
+    // Backend sets HTTP-Only cookie. We read user info from body.
+    const userData = response.data.user;
+    setUser(userData);
+    return userData;
+  }, []);
+
+  const logout = useCallback(async () => {
+    try {
+      await axios.post(
+        `${API_BASE}/api/v1/auth/logout`,
+        {},
+        { withCredentials: true }
+      );
+    } catch {
+      // Logout best-effort — cookie may already be expired
+    }
     setUser(null);
   }, []);
 
@@ -88,11 +87,11 @@ export function AuthProvider({ children }) {
     [user]
   );
 
-  const isAuthenticated = !!token && !!user;
+  const isAuthenticated = !!user;
 
   const value = {
-    token,
     user,
+    loading,
     isAuthenticated,
     login,
     logout,

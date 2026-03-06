@@ -229,3 +229,62 @@ async def void_invoice(
         )
     await db.commit()
     return InvoiceResponse.model_validate(invoice)
+
+
+@router.get(
+    "/{invoice_id}/pdf",
+    summary="Download invoice as PDF",
+)
+async def get_invoice_pdf(
+    client_id: uuid.UUID,
+    invoice_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    user: CurrentUser = Depends(get_current_user),
+):
+    """Generate and download a PDF for a single invoice."""
+    from fastapi.responses import Response
+    from app.services.invoice_pdf import generate_invoice_pdf
+
+    invoice = await InvoiceService.get_invoice(db, client_id, invoice_id)
+    if invoice is None:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+
+    # Get client name
+    from sqlalchemy import text as sqltxt
+    r = await db.execute(sqltxt("SELECT name FROM clients WHERE id = :cid"), {"cid": str(client_id)})
+    client_name = r.scalar() or "Client"
+
+    pdf_bytes = generate_invoice_pdf(invoice, client_name)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename=invoice-{invoice.invoice_number or invoice_id}.pdf"},
+    )
+
+
+@router.post(
+    "/{invoice_id}/send-email",
+    summary="Email an invoice to the customer",
+)
+async def send_invoice_email(
+    client_id: uuid.UUID,
+    invoice_id: uuid.UUID,
+    to_email: str = Query(..., description="Recipient email address"),
+    db: AsyncSession = Depends(get_db),
+    user: CurrentUser = Depends(get_current_user),
+) -> dict:
+    """Send an invoice via email. Requires SMTP to be configured."""
+    from app.services.email import send_email, render_invoice_email
+
+    invoice = await InvoiceService.get_invoice(db, client_id, invoice_id)
+    if invoice is None:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+
+    subject, html = render_invoice_email(
+        client_name=invoice.customer_name or "Customer",
+        invoice_number=invoice.invoice_number or str(invoice_id)[:8],
+        total=float(invoice.total_amount),
+        due_date=invoice.due_date.isoformat() if invoice.due_date else "N/A",
+    )
+    result = await send_email(to=to_email, subject=subject, html_body=html)
+    return result

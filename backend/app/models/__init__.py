@@ -46,6 +46,11 @@ from app.models.portal import (
 )
 from app.models.fixed_asset import FixedAsset, DepreciationEntry, DepreciationMethod, AssetStatus
 from app.models.budget import Budget, BudgetLine
+from app.models.password_reset_token import PasswordResetToken
+from app.models.recurring_template import (
+    RecurringTemplate, RecurringTemplateLine,
+    RecurringFrequency, RecurringSourceType, RecurringTemplateStatus,
+)
 
 __all__ = [
     "Base", "TimestampMixin", "SoftDeleteMixin",
@@ -79,4 +84,7 @@ __all__ = [
     "SignatureRequest", "SignatureStatus",
     "FixedAsset", "DepreciationEntry", "DepreciationMethod", "AssetStatus",
     "Budget", "BudgetLine",
+    "RecurringTemplate", "RecurringTemplateLine",
+    "RecurringFrequency", "RecurringSourceType", "RecurringTemplateStatus",
+    "PasswordResetToken",
 ]

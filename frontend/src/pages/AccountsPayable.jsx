@@ -47,6 +47,7 @@ export default function AccountsPayable() {
   // Payment modal
   const [payTarget, setPayTarget] = useState(null);
   const [payForm, setPayForm] = useState({ payment_date: '', amount: '', payment_method: '', reference_number: '' });
+  const [printingCheckId, setPrintingCheckId] = useState(null);
 
   // Queries
   const { data: client } = useApiQuery(['client', clientId], `/api/v1/clients/${clientId}`);
@@ -170,6 +171,31 @@ export default function AccountsPayable() {
       id: payTarget.id,
       body: { ...payForm, amount: String(payForm.amount) },
     });
+  }
+
+  // Print check handler
+  async function handlePrintCheck(billId, paymentId) {
+    setPrintingCheckId(paymentId);
+    try {
+      const res = await api.post(
+        `/api/v1/clients/${clientId}/bills/${billId}/payments/${paymentId}/print-check`,
+        {},
+        { responseType: 'blob' }
+      );
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `check-bill-${billId}-payment-${paymentId}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      addToast('success', 'Check PDF downloaded');
+    } catch (e) {
+      addToast('error', e.response?.data?.detail || 'Failed to print check');
+    } finally {
+      setPrintingCheckId(null);
+    }
   }
 
   // Vendor columns
@@ -376,10 +402,28 @@ export default function AccountsPayable() {
               <>
                 <h4 className="mb-8">Payments</h4>
                 <table className="table mb-16">
-                  <thead><tr><th>Date</th><th>Method</th><th>Reference</th><th style={{ textAlign: 'right' }}>Amount</th></tr></thead>
+                  <thead><tr><th>Date</th><th>Method</th><th>Reference</th><th style={{ textAlign: 'right' }}>Amount</th><th></th></tr></thead>
                   <tbody>
                     {billDetail.payments.map((p) => (
-                      <tr key={p.id}><td>{formatDate(p.payment_date)}</td><td>{p.payment_method || '--'}</td><td>{p.reference_number || '--'}</td><td className="text-right">{formatCurrency(p.amount)}</td></tr>
+                      <tr key={p.id}>
+                        <td>{formatDate(p.payment_date)}</td>
+                        <td>{p.payment_method || '--'}</td>
+                        <td>{p.reference_number || '--'}</td>
+                        <td className="text-right">{formatCurrency(p.amount)}</td>
+                        <td>
+                          {p.payment_method === 'Check' && (
+                            <RoleGate role="CPA_OWNER">
+                              <button
+                                className="btn btn--small btn--outline"
+                                disabled={printingCheckId === p.id}
+                                onClick={() => handlePrintCheck(billDetail.id, p.id)}
+                              >
+                                {printingCheckId === p.id ? 'Printing...' : 'Print Check'}
+                              </button>
+                            </RoleGate>
+                          )}
+                        </td>
+                      </tr>
                     ))}
                   </tbody>
                 </table>

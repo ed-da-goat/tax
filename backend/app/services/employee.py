@@ -13,6 +13,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.crypto import encrypt_pii
 from app.models.employee import Employee
 from app.schemas.employee import EmployeeCreate, EmployeeUpdate
 
@@ -30,6 +31,7 @@ class EmployeeService:
             client_id=client_id,
             first_name=data.first_name,
             last_name=data.last_name,
+            ssn_encrypted=encrypt_pii(data.ssn),
             filing_status=data.filing_status.value,
             allowances=data.allowances,
             pay_rate=data.pay_rate,
@@ -100,6 +102,9 @@ class EmployeeService:
             return None
 
         update_data = data.model_dump(exclude_unset=True)
+        # Encrypt SSN at the service boundary
+        if "ssn" in update_data:
+            employee.ssn_encrypted = encrypt_pii(update_data.pop("ssn"))
         for field, value in update_data.items():
             if field in ("filing_status", "pay_type") and value is not None:
                 value = value.value

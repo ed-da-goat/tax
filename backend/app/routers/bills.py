@@ -196,6 +196,38 @@ class CheckSequenceUpdate(BaseSchema):
     next_check_number: int
 
 
+@router.get(
+    "/{bill_id}/pdf",
+    summary="Download bill as PDF",
+    response_class=Response,
+)
+async def get_bill_pdf(
+    client_id: UUID,
+    bill_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+) -> Response:
+    """Generate and download a PDF for a single bill."""
+    from app.services.invoice_pdf import generate_bill_pdf
+
+    bill = await BillService.get_bill(db, client_id, bill_id)
+    if bill is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bill not found")
+
+    from sqlalchemy import text as sql_text
+    client_result = await db.execute(sql_text("SELECT name FROM clients WHERE id = :cid"), {"cid": str(client_id)})
+    client_name = client_result.scalar() or "Client"
+    vendor_result = await db.execute(sql_text("SELECT name FROM vendors WHERE id = :vid"), {"vid": str(bill.vendor_id)})
+    vendor_name = vendor_result.scalar() or "Vendor"
+
+    pdf_bytes = generate_bill_pdf(bill, client_name, vendor_name)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename=bill-{bill.bill_number or bill_id}.pdf"},
+    )
+
+
 @router.post(
     "/{bill_id}/payments/{payment_id}/print-check",
     summary="Print check for a bill payment",

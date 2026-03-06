@@ -25,11 +25,15 @@ import FixedAssets from './pages/FixedAssets';
 import Budgets from './pages/Budgets';
 import FirmAnalytics from './pages/FirmAnalytics';
 import DueDates from './pages/DueDates';
+import AuditTrail from './pages/AuditTrail';
+import SystemAdmin from './pages/SystemAdmin';
+import ResetPassword from './pages/ResetPassword';
 
 export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
 
       {/* All authenticated routes share the Layout shell */}
       <Route
@@ -62,6 +66,8 @@ export default function App() {
         <Route path="/budgets" element={<Budgets />} />
         <Route path="/analytics" element={<FirmAnalytics />} />
         <Route path="/due-dates" element={<DueDates />} />
+        <Route path="/audit-trail" element={<AuditTrail />} />
+        <Route path="/admin" element={<SystemAdmin />} />
       </Route>
 
       {/* Default redirect */}

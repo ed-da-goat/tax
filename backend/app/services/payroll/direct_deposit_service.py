@@ -34,6 +34,8 @@ from app.schemas.direct_deposit import (
     NACHAGenerateRequest,
 )
 
+from app.crypto import decrypt_pii, encrypt_pii
+
 from .nacha_generator import NACHAEntry, NACHAFileGenerator
 
 
@@ -64,15 +66,11 @@ class DirectDepositService:
         if data.is_primary:
             await _unset_primary_accounts(db, employee_id)
 
-        # Encrypt account number (simple encoding for now — production should use
-        # Fernet or AES-256 via a key management service)
-        encrypted = data.account_number.encode("utf-8")
-
         account = EmployeeBankAccount(
             employee_id=employee_id,
             client_id=client_id,
             account_holder_name=data.account_holder_name,
-            account_number_encrypted=encrypted,
+            account_number_encrypted=encrypt_pii(data.account_number),
             routing_number=data.routing_number,
             account_type=data.account_type.value,
             is_primary=data.is_primary,
@@ -137,7 +135,7 @@ class DirectDepositService:
 
         # Handle account number encryption
         if "account_number" in update_data and update_data["account_number"] is not None:
-            account.account_number_encrypted = update_data.pop("account_number").encode("utf-8")
+            account.account_number_encrypted = encrypt_pii(update_data.pop("account_number"))
             # Reset prenote when account number changes
             account.prenote_status = "PENDING"
             account.prenote_sent_at = None
@@ -303,7 +301,7 @@ class DirectDepositService:
         entry = NACHAEntry(
             transaction_code=tx_code,
             routing_number=account.routing_number,
-            account_number=account.account_number_encrypted.decode("utf-8"),
+            account_number=decrypt_pii(account.account_number_encrypted) or "",
             amount=0,  # Prenote is always $0.00
             individual_id=str(employee_id)[:15],
             individual_name=f"{emp.last_name} {emp.first_name}"[:22].upper(),
@@ -511,7 +509,7 @@ async def _build_nacha_entries(
         entries.append(NACHAEntry(
             transaction_code=tx_code,
             routing_number=account.routing_number,
-            account_number=account.account_number_encrypted.decode("utf-8"),
+            account_number=decrypt_pii(account.account_number_encrypted) or "",
             amount=NACHAFileGenerator.amount_to_cents(item.net_pay),
             individual_id=str(item.employee_id)[:15],
             individual_name=f"{employee.last_name} {employee.first_name}"[:22].upper(),

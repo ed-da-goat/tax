@@ -110,8 +110,7 @@ export default function Contacts() {
 
       <DataTable columns={columns} rows={items} emptyMessage="No contacts found" />
 
-      {isEditing && (
-        <Modal title={editContact ? 'Edit Contact' : 'Add Contact'} onClose={() => { setShowAdd(false); setEditContact(null); }}>
+      <Modal isOpen={isEditing} title={editContact ? 'Edit Contact' : 'Add Contact'} onClose={() => { setShowAdd(false); setEditContact(null); }}>
           <form onSubmit={handleSave}>
             <FormField label="Client" required>
               <select value={form.client_id} onChange={e => setForm(f => ({ ...f, client_id: e.target.value }))} required disabled={!!editContact}>
@@ -165,8 +164,7 @@ export default function Contacts() {
               <button type="submit" className="btn btn--primary" disabled={createContact.isPending || updateContact.isPending}>Save</button>
             </div>
           </form>
-        </Modal>
-      )}
+      </Modal>
 
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
     </div>

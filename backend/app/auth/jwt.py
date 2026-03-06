@@ -5,6 +5,7 @@ Tokens encode: user_id, role, and expiration.
 Algorithm and secret are configured in app.config.settings.
 """
 
+import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -39,6 +40,7 @@ def create_access_token(
     payload: dict[str, Any] = {
         "sub": str(user_id),
         "role": role,
+        "jti": str(uuid.uuid4()),
         "iat": now,
         "exp": now + expires_delta,
     }

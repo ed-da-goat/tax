@@ -4,7 +4,7 @@ import DataTable from '../components/DataTable';
 import Toast from '../components/Toast';
 import { formatDate } from '../utils/format';
 
-const PRIORITY_COLORS = { LOW: '#6B7280', MEDIUM: '#3B82F6', HIGH: '#F59E0B', URGENT: '#EF4444' };
+const PRIORITY_COLORS = { LOW: '#6B7280', MEDIUM: '#3d6d8e', HIGH: '#F59E0B', URGENT: '#EF4444' };
 
 export default function DueDates() {
   const [toast, setToast] = useState(null);
@@ -80,9 +80,9 @@ export default function DueDates() {
           <div className="stat-card__label">Overdue</div>
           <div className="stat-card__value" style={{ color: '#EF4444' }}>{overdueCount}</div>
         </div>
-        <div className="stat-card" style={{ cursor: 'pointer', border: view === 'upcoming' ? '2px solid #3B82F6' : undefined }} onClick={() => setView('upcoming')}>
+        <div className="stat-card" style={{ cursor: 'pointer', border: view === 'upcoming' ? '2px solid #3d6d8e' : undefined }} onClick={() => setView('upcoming')}>
           <div className="stat-card__label">Upcoming</div>
-          <div className="stat-card__value" style={{ color: '#3B82F6' }}>{upcomingCount}</div>
+          <div className="stat-card__value" style={{ color: '#3d6d8e' }}>{upcomingCount}</div>
         </div>
         <div className="stat-card" style={{ cursor: 'pointer', border: view === 'all' ? '2px solid #6B7280' : undefined }} onClick={() => setView('all')}>
           <div className="stat-card__label">All</div>

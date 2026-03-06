@@ -12,6 +12,7 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.crypto import encrypt_pii
 from app.models.vendor import Vendor
 from app.schemas.vendor import VendorCreate, VendorUpdate
 
@@ -33,6 +34,7 @@ class VendorService:
         vendor = Vendor(
             client_id=client_id,
             name=data.name,
+            tax_id_encrypted=encrypt_pii(data.tax_id),
             address=data.address,
             city=data.city,
             state=data.state,
@@ -116,6 +118,9 @@ class VendorService:
         update_data = data.model_dump(exclude_unset=True)
         if "email" in update_data and update_data["email"] is not None:
             update_data["email"] = str(update_data["email"])
+        # Encrypt tax_id at the service boundary
+        if "tax_id" in update_data:
+            vendor.tax_id_encrypted = encrypt_pii(update_data.pop("tax_id"))
         for field, value in update_data.items():
             setattr(vendor, field, value)
 

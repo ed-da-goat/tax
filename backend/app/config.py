@@ -26,21 +26,25 @@ class Settings(BaseSettings):
 
     # -----------------------------------------------------------------------
     # Database — PostgreSQL (async via asyncpg)
+    # Must be set in .env — no default (prevents accidental use of wrong DB)
     # -----------------------------------------------------------------------
-    DATABASE_URL: str = (
-        "postgresql+asyncpg://postgres:postgres@localhost:5432/ga_cpa"
-    )
+    DATABASE_URL: str
     # Synchronous URL for Alembic migrations
-    DATABASE_URL_SYNC: str = (
-        "postgresql+psycopg2://postgres:postgres@localhost:5432/ga_cpa"
-    )
+    DATABASE_URL_SYNC: str = ""
 
     # -----------------------------------------------------------------------
-    # JWT Auth
+    # Encryption — Fernet symmetric key for PII at rest
+    # Generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+    # Must be set in .env — no default
     # -----------------------------------------------------------------------
-    JWT_SECRET: str = "CHANGE-ME-IN-PRODUCTION"
+    ENCRYPTION_KEY: str
+
+    # -----------------------------------------------------------------------
+    # JWT Auth — Must be set in .env — no default
+    # -----------------------------------------------------------------------
+    JWT_SECRET: str
     JWT_ALGORITHM: str = "HS256"
-    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60  # 1-hour sessions (reduced from 8h for security)
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 30  # 30-minute sessions
 
     # File upload limits
     MAX_UPLOAD_SIZE_MB: int = 50
@@ -49,10 +53,10 @@ class Settings(BaseSettings):
     # CORS
     # -----------------------------------------------------------------------
     CORS_ORIGINS: list[str] = [
-        "http://localhost:5173",  # Vite default dev server
-        "http://localhost:3000",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:3000",
+        "https://localhost",
+        "https://192.168.1.104",
+        "http://localhost:5173",  # Vite dev server (DEBUG only)
+        "http://localhost:3000",  # Vite dev server port 3000
     ]
 
     # -----------------------------------------------------------------------
@@ -60,6 +64,17 @@ class Settings(BaseSettings):
     # -----------------------------------------------------------------------
     DOCUMENT_STORAGE_PATH: str = "/data/documents"
     BACKUP_STORAGE_PATH: str = "/data/backups"
+
+    # -----------------------------------------------------------------------
+    # Email (SMTP)
+    # -----------------------------------------------------------------------
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM_NAME: str = "Georgia CPA Firm"
+    SMTP_FROM_EMAIL: str = ""
+    SMTP_USE_TLS: bool = True
 
 
 settings = Settings()

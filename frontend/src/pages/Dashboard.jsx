@@ -20,8 +20,30 @@ export default function Dashboard() {
     { enabled: user?.role === 'CPA_OWNER' }
   );
 
+  // Upcoming due dates (next 7 days)
+  const { data: dueDates } = useApiQuery(
+    ['due-dates-upcoming'],
+    '/api/v1/due-dates?days=7'
+  );
+
+  // Recent audit log entries
+  const { data: recentActivity } = useApiQuery(
+    ['recent-activity'],
+    '/api/v1/audit-log?limit=8',
+    { enabled: user?.role === 'CPA_OWNER' }
+  );
+
   const metrics = dashboard?.client_metrics || [];
   const pendingCount = approvals?.total ?? 0;
+  const upcomingDues = Array.isArray(dueDates) ? dueDates.slice(0, 6) : (dueDates?.items || []).slice(0, 6);
+  const activities = Array.isArray(recentActivity) ? recentActivity.slice(0, 8) : (recentActivity?.items || []).slice(0, 8);
+
+  // Revenue mini-chart: use client metrics to build a simple bar chart
+  const revenueData = metrics
+    .filter(m => m.total_revenue > 0)
+    .sort((a, b) => b.total_revenue - a.total_revenue)
+    .slice(0, 6);
+  const maxRevenue = Math.max(...revenueData.map(d => d.total_revenue), 1);
 
   const columns = [
     { key: 'client_name', label: 'Client' },
@@ -123,6 +145,95 @@ export default function Dashboard() {
             <div className="stat-card-value">
               {approvals?.total ?? '--'}
             </div>
+          </div>
+        </RoleGate>
+      </div>
+
+      {/* Dashboard Widgets Row */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 24 }}>
+        {/* Revenue by Client mini-chart */}
+        <div className="card">
+          <div className="card-heading">Revenue by Client</div>
+          {revenueData.length === 0 ? (
+            <p className="text-muted" style={{ fontSize: 13 }}>No revenue data yet</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {revenueData.map((d) => (
+                <div key={d.client_id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 12, width: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                    {d.client_name}
+                  </span>
+                  <div style={{ flex: 1, height: 16, background: '#f5f6f8', borderRadius: 4, overflow: 'hidden' }}>
+                    <div style={{
+                      width: `${(d.total_revenue / maxRevenue) * 100}%`,
+                      height: '100%',
+                      background: 'linear-gradient(90deg, #3d6d8e, #6a9ab8)',
+                      borderRadius: 4,
+                      minWidth: 4,
+                    }} />
+                  </div>
+                  <span style={{ fontSize: 11, color: '#6b7280', width: 70, textAlign: 'right', flexShrink: 0 }}>
+                    {formatCurrency(d.total_revenue)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Upcoming Due Dates */}
+        <div className="card">
+          <div className="card-heading" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            Upcoming Due Dates
+            <button className="btn btn--small btn--outline" style={{ fontSize: 10, padding: '2px 8px' }} onClick={() => navigate('/due-dates')}>View All</button>
+          </div>
+          {upcomingDues.length === 0 ? (
+            <p className="text-muted" style={{ fontSize: 13 }}>No upcoming due dates</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {upcomingDues.map((d, i) => {
+                const isOverdue = d.due_date && new Date(d.due_date) < new Date();
+                return (
+                  <div key={d.id || i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, padding: '4px 0', borderBottom: '1px solid #f0f0f0' }}>
+                    <span style={{ fontWeight: 500, maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {d.title || d.description || 'Due date'}
+                    </span>
+                    <span style={{ color: isOverdue ? '#dc2626' : '#6b7280', fontWeight: isOverdue ? 600 : 400 }}>
+                      {d.due_date ? new Date(d.due_date).toLocaleDateString() : ''}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Recent Activity */}
+        <RoleGate role="CPA_OWNER">
+          <div className="card">
+            <div className="card-heading" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              Recent Activity
+              <button className="btn btn--small btn--outline" style={{ fontSize: 10, padding: '2px 8px' }} onClick={() => navigate('/audit-trail')}>View All</button>
+            </div>
+            {activities.length === 0 ? (
+              <p className="text-muted" style={{ fontSize: 13 }}>No recent activity</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {activities.map((a, i) => (
+                  <div key={a.id || i} style={{ fontSize: 11, padding: '3px 0', borderBottom: '1px solid #f8f8f8', display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontWeight: 600, textTransform: 'uppercase', fontSize: 10, color: a.action === 'INSERT' ? '#16a34a' : a.action === 'DELETE' ? '#dc2626' : '#3d6d8e', marginRight: 4 }}>
+                        {a.action}
+                      </span>
+                      {a.table_name?.replace(/_/g, ' ')}
+                    </span>
+                    <span style={{ color: '#6b7280', fontSize: 10 }}>
+                      {a.created_at ? new Date(a.created_at).toLocaleDateString() : ''}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </RoleGate>
       </div>

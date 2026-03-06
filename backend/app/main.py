@@ -12,6 +12,10 @@ from typing import AsyncGenerator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from slowapi.util import get_remote_address
 
 from app.config import settings
 from app.middleware.audit import AuditMiddleware
@@ -23,20 +27,26 @@ from app.routers import register_routers
 
 logger = logging.getLogger("app")
 
+# ---------------------------------------------------------------------------
+# Rate limiter — 100 req/min global, tighter on auth endpoints
+# ---------------------------------------------------------------------------
+limiter = Limiter(key_func=get_remote_address, default_limits=["100/minute"])
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan handler for startup/shutdown events."""
     # Validate critical config on startup
-    if settings.JWT_SECRET == "CHANGE-ME-IN-PRODUCTION" and not settings.DEBUG:
+    if len(settings.JWT_SECRET) < 32:
         raise RuntimeError(
-            "CRITICAL: JWT_SECRET is set to default value. "
-            "Set a strong JWT_SECRET environment variable before running in production."
+            "CRITICAL: JWT_SECRET is too short (min 32 chars). "
+            "Set a strong JWT_SECRET in .env."
         )
-    if settings.JWT_SECRET == "CHANGE-ME-IN-PRODUCTION":
-        logger.warning(
-            "JWT_SECRET is using the default development value. "
-            "Set a strong secret before deploying."
+    if len(settings.ENCRYPTION_KEY) < 20:
+        raise RuntimeError(
+            "CRITICAL: ENCRYPTION_KEY is too short. "
+            "Generate a Fernet key: python -c \"from cryptography.fernet import Fernet; "
+            "print(Fernet.generate_key().decode())\" and set ENCRYPTION_KEY in .env"
         )
     yield
     # Shutdown: future cleanup tasks
@@ -55,9 +65,20 @@ app = FastAPI(
 )
 
 # ---------------------------------------------------------------------------
+# Rate limiting via slowapi
+# ---------------------------------------------------------------------------
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# ---------------------------------------------------------------------------
 # Security Headers — must be outermost middleware (runs last on response)
 # ---------------------------------------------------------------------------
 app.add_middleware(SecurityHeadersMiddleware)
+
+# ---------------------------------------------------------------------------
+# Rate limiting middleware (slowapi)
+# ---------------------------------------------------------------------------
+app.add_middleware(SlowAPIMiddleware)
 
 # ---------------------------------------------------------------------------
 # Request Size Limit — reject oversized payloads early

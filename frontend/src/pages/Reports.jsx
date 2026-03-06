@@ -11,6 +11,8 @@ const TABS = [
   { key: 'bs', label: 'Balance Sheet' },
   { key: 'cf', label: 'Cash Flow' },
   { key: 'dashboard', label: 'Firm Dashboard' },
+  { key: 'ar-aging', label: 'AR Aging' },
+  { key: 'ap-aging', label: 'AP Aging' },
 ];
 
 export default function Reports() {
@@ -36,6 +38,8 @@ export default function Reports() {
   const [bsData, setBsData] = useState(null);
   const [cfData, setCfData] = useState(null);
   const [dashData, setDashData] = useState(null);
+  const [arData, setArData] = useState(null);
+  const [apData, setApData] = useState(null);
 
   const fetchPL = async () => {
     if (!clientId) return;
@@ -84,28 +88,73 @@ export default function Reports() {
     setLoading(false);
   };
 
-  const exportPdf = async (type) => {
+  const fetchARaging = async () => {
     if (!clientId) return;
+    setLoading(true); setError('');
     try {
-      const params = type === 'balance-sheet'
-        ? { as_of_date: asOfDate }
-        : { period_start: startDate, period_end: endDate };
-      const res = await api.get(`/api/v1/reports/clients/${clientId}/${type}/pdf`, {
-        params,
-        responseType: 'blob',
+      const res = await api.get(`/api/v1/reports/clients/${clientId}/ar-aging`, {
+        params: { as_of_date: asOfDate },
       });
-      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+      setArData(res.data);
+    } catch (e) { setError(e.response?.data?.detail || 'Failed to load report'); }
+    setLoading(false);
+  };
+
+  const fetchAPaging = async () => {
+    if (!clientId) return;
+    setLoading(true); setError('');
+    try {
+      const res = await api.get(`/api/v1/reports/clients/${clientId}/ap-aging`, {
+        params: { as_of_date: asOfDate },
+      });
+      setApData(res.data);
+    } catch (e) { setError(e.response?.data?.detail || 'Failed to load report'); }
+    setLoading(false);
+  };
+
+  const downloadFile = async (url, params, filename, mimeType) => {
+    try {
+      const res = await api.get(url, { params, responseType: 'blob' });
+      const blobUrl = window.URL.createObjectURL(new Blob([res.data], { type: mimeType }));
       const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `${type}-${clientId}.pdf`);
+      link.href = blobUrl;
+      link.setAttribute('download', filename);
       document.body.appendChild(link);
       link.click();
       link.remove();
-      window.URL.revokeObjectURL(url);
+      window.URL.revokeObjectURL(blobUrl);
     } catch (e) {
-      setError(e.response?.data?.detail || 'PDF export failed');
+      setError(e.response?.data?.detail || 'Export failed');
     }
   };
+
+  const getReportParams = (type) => (type === 'balance-sheet' || type === 'ar-aging' || type === 'ap-aging')
+    ? { as_of_date: asOfDate }
+    : { period_start: startDate, period_end: endDate };
+
+  const exportPdf = (type) => clientId && downloadFile(
+    `/api/v1/reports/clients/${clientId}/${type}/pdf`,
+    getReportParams(type), `${type}-${clientId}.pdf`, 'application/pdf'
+  );
+  const exportCsv = (type) => clientId && downloadFile(
+    `/api/v1/reports/clients/${clientId}/${type}/csv`,
+    getReportParams(type), `${type}-${clientId}.csv`, 'text/csv'
+  );
+  const exportXlsx = (type) => clientId && downloadFile(
+    `/api/v1/reports/clients/${clientId}/${type}/xlsx`,
+    getReportParams(type), `${type}-${clientId}.xlsx`,
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  );
+
+  const ExportButtons = ({ type, data }) => (
+    data ? (
+      <RoleGate role="CPA_OWNER">
+        <button className="btn btn--outline" style={{ marginBottom: 16 }} onClick={() => exportPdf(type)}>PDF</button>
+        <button className="btn btn--outline" style={{ marginBottom: 16 }} onClick={() => exportCsv(type)}>CSV</button>
+        <button className="btn btn--outline" style={{ marginBottom: 16 }} onClick={() => exportXlsx(type)}>Excel</button>
+      </RoleGate>
+    ) : null
+  );
 
   const renderAccountRows = (rows) => (
     rows.map((r, i) => (
@@ -136,9 +185,7 @@ export default function Reports() {
               <input className="form-input" type="date" style={{ maxWidth: 160, marginBottom: 16 }} value={startDate} onChange={(e) => setStartDate(e.target.value)} />
               <input className="form-input" type="date" style={{ maxWidth: 160, marginBottom: 16 }} value={endDate} onChange={(e) => setEndDate(e.target.value)} />
               <button className={`btn btn--primary${loading ? ' btn--loading' : ''}`} style={{ marginBottom: 16 }} onClick={fetchPL} disabled={!clientId || loading}>Generate</button>
-              <RoleGate role="CPA_OWNER">
-                {plData && <button className="btn btn--outline" style={{ marginBottom: 16 }} onClick={() => exportPdf('profit-loss')}>Export PDF</button>}
-              </RoleGate>
+              <ExportButtons type="profit-loss" data={plData} />
             </div>
             {loading && !plData && <div className="spinner" />}
             {!loading && !plData && (
@@ -175,9 +222,7 @@ export default function Reports() {
               <ClientSelector value={clientId} onSelect={setClientId} />
               <input className="form-input" type="date" style={{ maxWidth: 160, marginBottom: 16 }} value={asOfDate} onChange={(e) => setAsOfDate(e.target.value)} />
               <button className={`btn btn--primary${loading ? ' btn--loading' : ''}`} style={{ marginBottom: 16 }} onClick={fetchBS} disabled={!clientId || loading}>Generate</button>
-              <RoleGate role="CPA_OWNER">
-                {bsData && <button className="btn btn--outline" style={{ marginBottom: 16 }} onClick={() => exportPdf('balance-sheet')}>Export PDF</button>}
-              </RoleGate>
+              <ExportButtons type="balance-sheet" data={bsData} />
             </div>
             {loading && !bsData && <div className="spinner" />}
             {!loading && !bsData && (
@@ -213,9 +258,7 @@ export default function Reports() {
               <input className="form-input" type="date" style={{ maxWidth: 160, marginBottom: 16 }} value={startDate} onChange={(e) => setStartDate(e.target.value)} />
               <input className="form-input" type="date" style={{ maxWidth: 160, marginBottom: 16 }} value={endDate} onChange={(e) => setEndDate(e.target.value)} />
               <button className={`btn btn--primary${loading ? ' btn--loading' : ''}`} style={{ marginBottom: 16 }} onClick={fetchCF} disabled={!clientId || loading}>Generate</button>
-              <RoleGate role="CPA_OWNER">
-                {cfData && <button className="btn btn--outline" style={{ marginBottom: 16 }} onClick={() => exportPdf('cash-flow')}>Export PDF</button>}
-              </RoleGate>
+              <ExportButtons type="cash-flow" data={cfData} />
             </div>
             {loading && !cfData && <div className="spinner" />}
             {!loading && !cfData && (
@@ -296,6 +339,138 @@ export default function Reports() {
                     </tbody>
                   </table>
                 )}
+              </>
+            )}
+          </>
+        )}
+
+        {/* AR Aging */}
+        {tab === 'ar-aging' && (
+          <>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', marginBottom: 16 }}>
+              <ClientSelector value={clientId} onSelect={setClientId} />
+              <div>
+                <label className="form-label">As of Date</label>
+                <input className="form-input" type="date" style={{ maxWidth: 160, marginBottom: 16 }} value={asOfDate} onChange={(e) => setAsOfDate(e.target.value)} />
+              </div>
+              <button className={`btn btn--primary${loading ? ' btn--loading' : ''}`} style={{ marginBottom: 16 }} onClick={fetchARaging} disabled={!clientId || loading}>Generate</button>
+              <ExportButtons type="ar-aging" data={arData} />
+            </div>
+            {loading && !arData && <div className="spinner" />}
+            {!loading && !arData && (
+              <div className="empty-state">
+                <div className="empty-state-heading">Select a client and as-of date</div>
+                <div className="empty-state-text">Click Generate to view the AR Aging report.</div>
+              </div>
+            )}
+            {arData && (
+              <>
+                <div className="card-grid" style={{ marginBottom: 24 }}>
+                  <div className="card"><div className="card-heading">Total Outstanding</div><div className="card-value">{formatCurrency(arData.total_outstanding)}</div></div>
+                  <div className="card"><div className="card-heading">Current</div><div className="card-value">{formatCurrency(arData.buckets?.current)}</div></div>
+                  <div className="card"><div className="card-heading">1-30 Days</div><div className="card-value">{formatCurrency(arData.buckets?.days_1_30)}</div></div>
+                  <div className="card"><div className="card-heading">31-60 Days</div><div className="card-value">{formatCurrency(arData.buckets?.days_31_60)}</div></div>
+                  <div className="card"><div className="card-heading">61-90 Days</div><div className="card-value">{formatCurrency(arData.buckets?.days_61_90)}</div></div>
+                  <div className="card"><div className="card-heading">90+ Days</div><div className="card-value">{formatCurrency(arData.buckets?.days_over_90)}</div></div>
+                </div>
+                <div className="card">
+                  <h3 style={{ marginBottom: 16 }}>AR Aging Detail — {arData.client_name} — As of {formatDate(arData.as_of_date)}</h3>
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>Invoice #</th>
+                        <th>Customer</th>
+                        <th>Invoice Date</th>
+                        <th>Due Date</th>
+                        <th style={{ textAlign: 'right' }}>Amount</th>
+                        <th style={{ textAlign: 'right' }}>Age (Days)</th>
+                        <th>Bucket</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(arData.items || []).map((item, i) => (
+                        <tr key={i}>
+                          <td>{item.invoice_number}</td>
+                          <td>{item.customer_name}</td>
+                          <td>{formatDate(item.invoice_date)}</td>
+                          <td>{formatDate(item.due_date)}</td>
+                          <td style={{ textAlign: 'right' }}>{formatCurrency(item.amount)}</td>
+                          <td style={{ textAlign: 'right' }}>{item.age_days}</td>
+                          <td>{item.bucket}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {(arData.items || []).length === 0 && (
+                    <p style={{ color: 'var(--color-text-muted)', marginTop: 8 }}>No outstanding receivables found.</p>
+                  )}
+                </div>
+              </>
+            )}
+          </>
+        )}
+
+        {/* AP Aging */}
+        {tab === 'ap-aging' && (
+          <>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', marginBottom: 16 }}>
+              <ClientSelector value={clientId} onSelect={setClientId} />
+              <div>
+                <label className="form-label">As of Date</label>
+                <input className="form-input" type="date" style={{ maxWidth: 160, marginBottom: 16 }} value={asOfDate} onChange={(e) => setAsOfDate(e.target.value)} />
+              </div>
+              <button className={`btn btn--primary${loading ? ' btn--loading' : ''}`} style={{ marginBottom: 16 }} onClick={fetchAPaging} disabled={!clientId || loading}>Generate</button>
+              <ExportButtons type="ap-aging" data={apData} />
+            </div>
+            {loading && !apData && <div className="spinner" />}
+            {!loading && !apData && (
+              <div className="empty-state">
+                <div className="empty-state-heading">Select a client and as-of date</div>
+                <div className="empty-state-text">Click Generate to view the AP Aging report.</div>
+              </div>
+            )}
+            {apData && (
+              <>
+                <div className="card-grid" style={{ marginBottom: 24 }}>
+                  <div className="card"><div className="card-heading">Total Outstanding</div><div className="card-value">{formatCurrency(apData.total_outstanding)}</div></div>
+                  <div className="card"><div className="card-heading">Current</div><div className="card-value">{formatCurrency(apData.buckets?.current)}</div></div>
+                  <div className="card"><div className="card-heading">1-30 Days</div><div className="card-value">{formatCurrency(apData.buckets?.days_1_30)}</div></div>
+                  <div className="card"><div className="card-heading">31-60 Days</div><div className="card-value">{formatCurrency(apData.buckets?.days_31_60)}</div></div>
+                  <div className="card"><div className="card-heading">61-90 Days</div><div className="card-value">{formatCurrency(apData.buckets?.days_61_90)}</div></div>
+                  <div className="card"><div className="card-heading">90+ Days</div><div className="card-value">{formatCurrency(apData.buckets?.days_over_90)}</div></div>
+                </div>
+                <div className="card">
+                  <h3 style={{ marginBottom: 16 }}>AP Aging Detail — {apData.client_name} — As of {formatDate(apData.as_of_date)}</h3>
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>Bill #</th>
+                        <th>Vendor</th>
+                        <th>Bill Date</th>
+                        <th>Due Date</th>
+                        <th style={{ textAlign: 'right' }}>Amount</th>
+                        <th style={{ textAlign: 'right' }}>Age (Days)</th>
+                        <th>Bucket</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(apData.items || []).map((item, i) => (
+                        <tr key={i}>
+                          <td>{item.bill_number}</td>
+                          <td>{item.vendor_name}</td>
+                          <td>{formatDate(item.bill_date)}</td>
+                          <td>{formatDate(item.due_date)}</td>
+                          <td style={{ textAlign: 'right' }}>{formatCurrency(item.amount)}</td>
+                          <td style={{ textAlign: 'right' }}>{item.age_days}</td>
+                          <td>{item.bucket}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {(apData.items || []).length === 0 && (
+                    <p style={{ color: 'var(--color-text-muted)', marginTop: 8 }}>No outstanding payables found.</p>
+                  )}
+                </div>
               </>
             )}
           </>

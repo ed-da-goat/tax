@@ -103,16 +103,16 @@ export default function Budgets() {
   return (
     <div>
       <div className="page-header">
-        <h1>Budgets</h1>
+        <h1 className="page-title">Budgets</h1>
         {selectedClient && <button className="btn btn--primary" onClick={() => setShowAdd(true)}>+ New Budget</button>}
       </div>
 
       <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
-        <select value={selectedClient} onChange={e => setSelectedClient(e.target.value)}>
+        <select className="form-input form-select" value={selectedClient} onChange={e => setSelectedClient(e.target.value)}>
           <option value="">Select Client...</option>
           {clientList.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
-        <input type="number" placeholder="Year" value={yearFilter} onChange={e => setYearFilter(e.target.value)} style={{ width: '100px' }} />
+        <input className="form-input" type="number" placeholder="Year" value={yearFilter} onChange={e => setYearFilter(e.target.value)} style={{ width: '100px' }} />
       </div>
 
       {selectedClient ? (
@@ -122,8 +122,7 @@ export default function Budgets() {
       )}
 
       {/* Create Budget Modal */}
-      {showAdd && (
-        <Modal title="New Budget" onClose={() => setShowAdd(false)} wide>
+      <Modal isOpen={showAdd} title="New Budget" onClose={() => setShowAdd(false)} size="lg">
           <form onSubmit={handleCreate}>
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px' }}>
               <FormField label="Budget Name" required>
@@ -137,7 +136,7 @@ export default function Budgets() {
               <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={2} />
             </FormField>
 
-            <h3 style={{ marginTop: '16px' }}>Budget Lines ({form.lines.length})</h3>
+            <h3 className="section-title" style={{ marginTop: '16px' }}>Budget Lines ({form.lines.length})</h3>
             <div style={{ overflowX: 'auto' }}>
               {form.lines.map((line, i) => (
                 <div key={i} style={{ display: 'flex', gap: '4px', marginBottom: '6px', alignItems: 'center' }}>
@@ -161,12 +160,10 @@ export default function Budgets() {
               <button type="submit" className="btn btn--primary" disabled={createBudget.isPending}>Create</button>
             </div>
           </form>
-        </Modal>
-      )}
+      </Modal>
 
       {/* Budget vs Actual Report Modal */}
-      {showReport && reportData && (
-        <Modal title={`Budget vs Actual — ${reportData.budget_name} (${reportData.fiscal_year})`} onClose={() => setShowReport(null)} wide>
+      <Modal isOpen={!!showReport && !!reportData} title={`Budget vs Actual — ${reportData?.budget_name} (${reportData?.fiscal_year})`} onClose={() => setShowReport(null)} size="lg">
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
@@ -178,7 +175,7 @@ export default function Budgets() {
               </tr>
             </thead>
             <tbody>
-              {(reportData.lines || []).map((line, i) => (
+              {(reportData?.lines || []).map((line, i) => (
                 <tr key={i} style={{ borderBottom: '1px solid #e5e7eb' }}>
                   <td style={{ padding: '8px' }}>{line.account_number} — {line.account_name}</td>
                   <td style={{ padding: '8px', textAlign: 'right' }}>{formatCurrency(line.budget_amount)}</td>
@@ -195,10 +192,10 @@ export default function Budgets() {
             <tfoot>
               <tr style={{ borderTop: '2px solid #374151', fontWeight: 600 }}>
                 <td style={{ padding: '8px' }}>Total</td>
-                <td style={{ padding: '8px', textAlign: 'right' }}>{formatCurrency(reportData.total_budget)}</td>
-                <td style={{ padding: '8px', textAlign: 'right' }}>{formatCurrency(reportData.total_actual)}</td>
-                <td style={{ padding: '8px', textAlign: 'right', color: parseFloat(reportData.total_variance) < 0 ? '#EF4444' : '#10B981' }}>
-                  {formatCurrency(reportData.total_variance)}
+                <td style={{ padding: '8px', textAlign: 'right' }}>{formatCurrency(reportData?.total_budget)}</td>
+                <td style={{ padding: '8px', textAlign: 'right' }}>{formatCurrency(reportData?.total_actual)}</td>
+                <td style={{ padding: '8px', textAlign: 'right', color: parseFloat(reportData?.total_variance) < 0 ? '#EF4444' : '#10B981' }}>
+                  {formatCurrency(reportData?.total_variance)}
                 </td>
                 <td />
               </tr>
@@ -207,8 +204,7 @@ export default function Budgets() {
           <div className="modal-actions">
             <button type="button" className="btn btn--outline" onClick={() => setShowReport(null)}>Close</button>
           </div>
-        </Modal>
-      )}
+      </Modal>
 
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
     </div>

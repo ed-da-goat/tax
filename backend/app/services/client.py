@@ -17,6 +17,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import CurrentUser, verify_role
+from app.crypto import encrypt_pii
 from app.models.client import Client, EntityType
 from app.schemas.client import ClientCreate, ClientUpdate
 
@@ -40,7 +41,7 @@ class ClientService:
         client = Client(
             name=data.name,
             entity_type=EntityType(data.entity_type.value),
-            tax_id_encrypted=data.tax_id_encrypted,
+            tax_id_encrypted=encrypt_pii(data.tax_id),
             address=data.address,
             city=data.city,
             state=data.state,
@@ -132,6 +133,11 @@ class ClientService:
             return None
 
         update_data = data.model_dump(exclude_unset=True)
+
+        # Encrypt tax_id at the service boundary
+        if "tax_id" in update_data:
+            client.tax_id_encrypted = encrypt_pii(update_data.pop("tax_id"))
+
         for field, value in update_data.items():
             setattr(client, field, value)
 

@@ -7,7 +7,7 @@ import Toast from '../components/Toast';
 import { formatCurrency, formatDate } from '../utils/format';
 
 const STATUS_COLORS = {
-  DRAFT: '#6B7280', SENT: '#3B82F6', VIEWED: '#8B5CF6',
+  DRAFT: '#6B7280', SENT: '#3d6d8e', VIEWED: '#8B5CF6',
   SIGNED: '#10B981', DECLINED: '#EF4444', EXPIRED: '#9CA3AF',
 };
 
@@ -102,8 +102,7 @@ export default function Engagements() {
 
       <DataTable columns={columns} rows={items} emptyMessage="No engagement letters" />
 
-      {showAdd && (
-        <Modal title="New Engagement Letter" onClose={() => setShowAdd(false)} wide>
+      <Modal isOpen={showAdd} title="New Engagement Letter" onClose={() => setShowAdd(false)} size="lg">
           <form onSubmit={handleCreate}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <FormField label="Client" required>
@@ -169,8 +168,7 @@ export default function Engagements() {
               <button type="submit" className="btn btn--primary" disabled={createEng.isPending}>Create</button>
             </div>
           </form>
-        </Modal>
-      )}
+      </Modal>
 
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
     </div>

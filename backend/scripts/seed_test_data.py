@@ -29,6 +29,19 @@ from app.models import (
     Document, Employee,
     PayrollRun, PayrollItem, PayrollRunStatus,
     PayrollTaxTable,
+    # Phase 9-12 models
+    TimeEntry, TimeEntryStatus, StaffRate,
+    Workflow, WorkflowStatus, WorkflowStage, WorkflowTask,
+    TaskStatusEnum, TaskPriority, RecurrenceType,
+    DueDate,
+    Contact,
+    Engagement, EngagementStatus,
+    ServiceInvoice, ServiceInvoiceLine, ServiceInvoiceStatus, PaymentMethod,
+    PortalUser, Message, Questionnaire, QuestionnaireStatus,
+    QuestionnaireQuestion, QuestionType,
+    SignatureRequest, SignatureStatus,
+    FixedAsset, DepreciationMethod, AssetStatus, DepreciationEntry,
+    Budget, BudgetLine,
 )
 from app.services.auth import hash_password
 from app.services.chart_of_accounts import (
@@ -82,6 +95,34 @@ async def reset_database(session: AsyncSession) -> None:
     tables_to_truncate = [
         "audit_log",
         "permission_log",
+        # Practice management tables (Phase 9-12)
+        "questionnaire_responses",
+        "questionnaire_questions",
+        "questionnaires",
+        "message_attachments",
+        "messages",
+        "signature_requests",
+        "portal_users",
+        "service_invoice_payments",
+        "service_invoice_lines",
+        "service_invoices",
+        "task_comments",
+        "workflow_tasks",
+        "workflows",
+        "workflow_stages",
+        "reminders",
+        "due_dates",
+        "depreciation_entries",
+        "fixed_assets",
+        "budget_lines",
+        "budgets",
+        "time_entries",
+        "timer_sessions",
+        "staff_rates",
+        "contacts",
+        "engagements",
+        "service_types",
+        # Core tables
         "payroll_items",
         "payroll_runs",
         "documents",
@@ -1473,6 +1514,602 @@ async def seed_tax_tables(session: AsyncSession) -> None:
 
 
 # ---------------------------------------------------------------------------
+# SEED STAFF RATES
+# ---------------------------------------------------------------------------
+async def seed_staff_rates(session: AsyncSession) -> None:
+    """Create staff billing rates for CPA and associate users."""
+    print("  Creating staff rates...")
+    session.add(StaffRate(
+        user_id=USER_CPA_ID, rate_name="Standard", hourly_rate=d("250.00"),
+        effective_date=date(2025, 1, 1),
+    ))
+    session.add(StaffRate(
+        user_id=USER_CPA_ID, rate_name="Advisory", hourly_rate=d("300.00"),
+        effective_date=date(2025, 1, 1),
+    ))
+    session.add(StaffRate(
+        user_id=USER_ASSOC_ID, rate_name="Standard", hourly_rate=d("150.00"),
+        effective_date=date(2025, 1, 1),
+    ))
+    session.add(StaffRate(
+        user_id=USER_ASSOC_ID, rate_name="Bookkeeping", hourly_rate=d("125.00"),
+        effective_date=date(2025, 1, 1),
+    ))
+    await session.flush()
+
+
+# ---------------------------------------------------------------------------
+# SEED TIME ENTRIES
+# ---------------------------------------------------------------------------
+async def seed_time_entries(session: AsyncSession) -> None:
+    """Create time entries for both staff across clients."""
+    print("  Creating time entries...")
+    entries_spec = [
+        # (client_id, user_id, date, minutes, desc, billable, service_type, rate, status)
+        (CLIENT_SOLE_PROP_ID, USER_CPA_ID, (1, 10), 120, "Q4 2024 tax prep review", True, "Tax Preparation", "250.00", "BILLED"),
+        (CLIENT_SOLE_PROP_ID, USER_ASSOC_ID, (1, 12), 90, "Bookkeeping cleanup - Dec", True, "Bookkeeping", "125.00", "BILLED"),
+        (CLIENT_SOLE_PROP_ID, USER_ASSOC_ID, (2, 5), 60, "Bank rec - January", True, "Bookkeeping", "125.00", "APPROVED"),
+        (CLIENT_SOLE_PROP_ID, USER_CPA_ID, (2, 15), 45, "Payroll review Q1", True, "Payroll Processing", "250.00", "APPROVED"),
+        (CLIENT_SOLE_PROP_ID, USER_ASSOC_ID, (3, 1), 75, "Monthly bookkeeping - Feb", True, "Bookkeeping", "125.00", "SUBMITTED"),
+        (CLIENT_SOLE_PROP_ID, USER_ASSOC_ID, (3, 20), 30, "Document filing", False, "Bookkeeping", "125.00", "DRAFT"),
+        (CLIENT_S_CORP_ID, USER_CPA_ID, (1, 5), 180, "S-Corp tax planning 2025", True, "Tax Preparation", "250.00", "BILLED"),
+        (CLIENT_S_CORP_ID, USER_CPA_ID, (1, 20), 240, "Annual financial review", True, "Advisory", "300.00", "BILLED"),
+        (CLIENT_S_CORP_ID, USER_ASSOC_ID, (2, 3), 120, "Monthly bookkeeping - Jan", True, "Bookkeeping", "125.00", "APPROVED"),
+        (CLIENT_S_CORP_ID, USER_ASSOC_ID, (2, 15), 90, "Payroll processing Feb", True, "Payroll Processing", "150.00", "APPROVED"),
+        (CLIENT_S_CORP_ID, USER_CPA_ID, (3, 1), 60, "Quarterly tax estimate", True, "Tax Preparation", "250.00", "SUBMITTED"),
+        (CLIENT_S_CORP_ID, USER_ASSOC_ID, (3, 15), 45, "AP entry & reconciliation", True, "Bookkeeping", "125.00", "DRAFT"),
+        (CLIENT_C_CORP_ID, USER_CPA_ID, (1, 8), 300, "C-Corp annual return prep", True, "Tax Preparation", "250.00", "BILLED"),
+        (CLIENT_C_CORP_ID, USER_ASSOC_ID, (1, 15), 180, "Fixed asset schedule update", True, "Bookkeeping", "125.00", "BILLED"),
+        (CLIENT_C_CORP_ID, USER_CPA_ID, (2, 1), 120, "Sales tax review Q4", True, "Tax Preparation", "250.00", "APPROVED"),
+        (CLIENT_C_CORP_ID, USER_ASSOC_ID, (2, 20), 150, "Monthly bookkeeping - Jan", True, "Bookkeeping", "125.00", "APPROVED"),
+        (CLIENT_C_CORP_ID, USER_ASSOC_ID, (3, 5), 90, "Payroll processing", True, "Payroll Processing", "150.00", "SUBMITTED"),
+        (CLIENT_C_CORP_ID, USER_ASSOC_ID, (3, 25), 60, "Bank rec - February", True, "Bookkeeping", "125.00", "DRAFT"),
+        (CLIENT_PARTNERSHIP_ID, USER_CPA_ID, (1, 3), 240, "Partnership return prep TY2024", True, "Tax Preparation", "250.00", "BILLED"),
+        (CLIENT_PARTNERSHIP_ID, USER_CPA_ID, (1, 25), 90, "Partner K-1 review", True, "Tax Preparation", "250.00", "BILLED"),
+        (CLIENT_PARTNERSHIP_ID, USER_ASSOC_ID, (2, 10), 120, "Monthly bookkeeping - Jan", True, "Bookkeeping", "125.00", "APPROVED"),
+        (CLIENT_PARTNERSHIP_ID, USER_ASSOC_ID, (3, 1), 60, "Quarterly estimate calc", True, "Tax Preparation", "150.00", "SUBMITTED"),
+        (CLIENT_PARTNERSHIP_ID, USER_ASSOC_ID, (3, 10), 45, "Document scanning & filing", False, "Bookkeeping", "125.00", "DRAFT"),
+    ]
+    for cid, uid, dt, mins, desc, bill, svc, rate, status in entries_spec:
+        hourly = d(rate)
+        amount = round(hourly * Decimal(mins) / Decimal(60), 2)
+        session.add(TimeEntry(
+            client_id=cid, user_id=uid, date=make_date(*dt),
+            duration_minutes=mins, description=desc, is_billable=bill,
+            service_type=svc, hourly_rate=hourly, amount=amount,
+            status=TimeEntryStatus(status),
+        ))
+    await session.flush()
+
+
+# ---------------------------------------------------------------------------
+# SEED CONTACTS
+# ---------------------------------------------------------------------------
+async def seed_contacts(session: AsyncSession) -> dict[uuid.UUID, list[uuid.UUID]]:
+    """Create contacts per client. Returns {client_id: [contact_ids]}."""
+    print("  Creating contacts...")
+    contact_map: dict[uuid.UUID, list[uuid.UUID]] = {}
+    contacts_spec = {
+        CLIENT_SOLE_PROP_ID: [
+            ("Mike", "Patterson", "mike@peachtreelandscaping.com", "770-555-1234", "Owner", True),
+            ("Lisa", "Patterson", "lisa@peachtreelandscaping.com", "770-555-1235", "Office Manager", False),
+        ],
+        CLIENT_S_CORP_ID: [
+            ("James", "Kim", "james@atlantatechsolutions.com", "404-555-2345", "CEO", True),
+            ("Priya", "Patel", "priya@atlantatechsolutions.com", "404-555-2346", "CFO", False),
+            ("Tom", "Morgan", "tom@atlantatechsolutions.com", "404-555-2347", "Controller", False),
+        ],
+        CLIENT_C_CORP_ID: [
+            ("Robert", "Davis", "rdavis@southernmfg.com", "912-555-3456", "President", True),
+            ("Karen", "Whitfield", "kwhitfield@southernmfg.com", "912-555-3457", "VP Finance", False),
+            ("Steve", "Robinson", "srobinson@southernmfg.com", "912-555-3458", "Plant Manager", False),
+        ],
+        CLIENT_PARTNERSHIP_ID: [
+            ("David", "Harrison", "dharrison@buckheadpartners.com", "404-555-4567", "Managing Partner", True),
+            ("Michelle", "Okafor", "mokafor@buckheadpartners.com", "404-555-4568", "Partner", False),
+        ],
+    }
+    for client_id, contacts in contacts_spec.items():
+        ids = []
+        for first, last, email, phone, title, primary in contacts:
+            cid = uuid.uuid4()
+            session.add(Contact(
+                id=cid, client_id=client_id, first_name=first, last_name=last,
+                email=email, phone=phone, title=title, is_primary=primary,
+                tags=["client-contact"], custom_fields={},
+            ))
+            ids.append(cid)
+        contact_map[client_id] = ids
+    await session.flush()
+    return contact_map
+
+
+# ---------------------------------------------------------------------------
+# SEED ENGAGEMENTS
+# ---------------------------------------------------------------------------
+async def seed_engagements(session: AsyncSession) -> None:
+    """Create engagement letters per client."""
+    print("  Creating engagements...")
+    engagements_spec = [
+        (CLIENT_SOLE_PROP_ID, "TY2025 Tax Preparation", "Tax Return", "FIXED", "1500.00", None, None, (1, 1), (4, 15), 2025, "SIGNED"),
+        (CLIENT_SOLE_PROP_ID, "Monthly Bookkeeping 2025", "Bookkeeping", "FIXED", "500.00", None, None, (1, 1), (12, 31), 2025, "SIGNED"),
+        (CLIENT_S_CORP_ID, "TY2025 S-Corp Return", "Tax Return", "FIXED", "3500.00", None, None, (1, 1), (3, 15), 2025, "SIGNED"),
+        (CLIENT_S_CORP_ID, "Advisory Services 2025", "Advisory", "HOURLY", None, "300.00", "40", (1, 1), (12, 31), 2025, "SIGNED"),
+        (CLIENT_S_CORP_ID, "Payroll Services 2025", "Payroll", "FIXED", "3600.00", None, None, (1, 1), (12, 31), 2025, "SENT"),
+        (CLIENT_C_CORP_ID, "TY2025 C-Corp Return", "Tax Return", "FIXED", "5000.00", None, None, (1, 1), (4, 15), 2025, "SIGNED"),
+        (CLIENT_C_CORP_ID, "Monthly Bookkeeping 2025", "Bookkeeping", "FIXED", "1200.00", None, None, (1, 1), (12, 31), 2025, "SIGNED"),
+        (CLIENT_C_CORP_ID, "Sales Tax Compliance", "Tax Compliance", "FIXED", "2400.00", None, None, (1, 1), (12, 31), 2025, "DRAFT"),
+        (CLIENT_PARTNERSHIP_ID, "TY2025 Partnership Return", "Tax Return", "FIXED", "4000.00", None, None, (1, 1), (3, 15), 2025, "SIGNED"),
+        (CLIENT_PARTNERSHIP_ID, "Business Advisory Q1", "Advisory", "HOURLY", None, "275.00", "30", (1, 1), (3, 31), 2025, "SIGNED"),
+    ]
+    now_utc = datetime.now(timezone.utc)
+    for cid, title, etype, fee_type, fixed, hourly, hours, sd, ed, ty, status in engagements_spec:
+        session.add(Engagement(
+            client_id=cid, title=title, engagement_type=etype,
+            fee_type=fee_type,
+            fixed_fee=d(fixed) if fixed else None,
+            hourly_rate=d(hourly) if hourly else None,
+            estimated_hours=d(hours) if hours else None,
+            start_date=make_date(*sd), end_date=make_date(*ed),
+            tax_year=ty, status=EngagementStatus(status),
+            signed_at=now_utc if status == "SIGNED" else None,
+            signed_by=title.split()[0] if status == "SIGNED" else None,
+            sent_at=now_utc if status in ("SENT", "SIGNED") else None,
+        ))
+    await session.flush()
+
+
+# ---------------------------------------------------------------------------
+# SEED WORKFLOWS & STAGES & TASKS
+# ---------------------------------------------------------------------------
+async def seed_workflow_stages(session: AsyncSession) -> None:
+    """Create standard workflow stage definitions."""
+    print("  Creating workflow stages...")
+    stages = {
+        "Tax Prep": [
+            ("Engagement", 1, "#6B7280", False),
+            ("Document Collection", 2, "#3B82F6", False),
+            ("Data Entry", 3, "#F59E0B", False),
+            ("Review", 4, "#8B5CF6", False),
+            ("Filing", 5, "#10B981", False),
+            ("Complete", 6, "#059669", True),
+        ],
+        "Bookkeeping": [
+            ("Data Collection", 1, "#6B7280", False),
+            ("Transaction Entry", 2, "#3B82F6", False),
+            ("Reconciliation", 3, "#F59E0B", False),
+            ("Review", 4, "#8B5CF6", False),
+            ("Delivered", 5, "#10B981", True),
+        ],
+        "Payroll": [
+            ("Time Collection", 1, "#6B7280", False),
+            ("Processing", 2, "#3B82F6", False),
+            ("Review", 3, "#F59E0B", False),
+            ("Approved", 4, "#10B981", True),
+        ],
+        "Onboarding": [
+            ("Initial Contact", 1, "#6B7280", False),
+            ("Engagement Letter", 2, "#3B82F6", False),
+            ("Document Gathering", 3, "#F59E0B", False),
+            ("System Setup", 4, "#8B5CF6", False),
+            ("Complete", 5, "#10B981", True),
+        ],
+        "Advisory": [
+            ("Planning", 1, "#6B7280", False),
+            ("Analysis", 2, "#3B82F6", False),
+            ("Recommendation", 3, "#F59E0B", False),
+            ("Implementation", 4, "#8B5CF6", False),
+            ("Follow-Up", 5, "#10B981", True),
+        ],
+    }
+    for wtype, stage_list in stages.items():
+        for sname, order, color, is_completion in stage_list:
+            session.add(WorkflowStage(
+                workflow_type=wtype, stage_name=sname,
+                stage_order=order, color=color,
+                is_completion_stage=is_completion,
+            ))
+    await session.flush()
+
+
+async def seed_workflows(session: AsyncSession) -> None:
+    """Create workflows with tasks across clients."""
+    print("  Creating workflows and tasks...")
+    workflows_spec = [
+        # (client_id, name, type, status, stage, due, assigned, tasks)
+        (CLIENT_SOLE_PROP_ID, "TY2025 Individual Return", "Tax Prep", "ACTIVE", "Document Collection", (3, 15),
+         USER_CPA_ID, [
+            ("Send engagement letter", "COMPLETED", "HIGH", (1, 5)),
+            ("Collect W-2s and 1099s", "COMPLETED", "HIGH", (1, 31)),
+            ("Gather expense records", "IN_PROGRESS", "MEDIUM", (2, 15)),
+            ("Enter Schedule C data", "NOT_STARTED", "MEDIUM", (2, 28)),
+            ("CPA review & sign", "NOT_STARTED", "HIGH", (3, 10)),
+            ("E-file return", "NOT_STARTED", "URGENT", (3, 15)),
+        ]),
+        (CLIENT_SOLE_PROP_ID, "Monthly Bookkeeping - March", "Bookkeeping", "ACTIVE", "Transaction Entry", (3, 31),
+         USER_ASSOC_ID, [
+            ("Download bank statements", "COMPLETED", "MEDIUM", (3, 5)),
+            ("Enter transactions", "IN_PROGRESS", "MEDIUM", (3, 15)),
+            ("Reconcile accounts", "NOT_STARTED", "HIGH", (3, 25)),
+            ("Review & deliver", "NOT_STARTED", "MEDIUM", (3, 31)),
+        ]),
+        (CLIENT_S_CORP_ID, "TY2025 S-Corp Return", "Tax Prep", "ACTIVE", "Data Entry", (3, 15),
+         USER_CPA_ID, [
+            ("Engagement letter signed", "COMPLETED", "HIGH", (1, 10)),
+            ("Collect corporate docs", "COMPLETED", "HIGH", (1, 31)),
+            ("Enter income/expense data", "IN_PROGRESS", "MEDIUM", (2, 15)),
+            ("K-1 allocations", "NOT_STARTED", "HIGH", (2, 28)),
+            ("CPA review", "NOT_STARTED", "HIGH", (3, 5)),
+            ("E-file 1120-S", "NOT_STARTED", "URGENT", (3, 15)),
+        ]),
+        (CLIENT_S_CORP_ID, "Q1 Payroll Processing", "Payroll", "COMPLETED", "Approved", (3, 31),
+         USER_ASSOC_ID, [
+            ("Collect timesheets", "COMPLETED", "MEDIUM", (3, 25)),
+            ("Process payroll", "COMPLETED", "HIGH", (3, 28)),
+            ("CPA review & approve", "COMPLETED", "HIGH", (3, 30)),
+        ]),
+        (CLIENT_C_CORP_ID, "TY2025 C-Corp Return", "Tax Prep", "ACTIVE", "Review", (4, 15),
+         USER_CPA_ID, [
+            ("Engagement signed", "COMPLETED", "HIGH", (1, 10)),
+            ("Collect corporate docs", "COMPLETED", "HIGH", (2, 1)),
+            ("Enter all data", "COMPLETED", "MEDIUM", (2, 28)),
+            ("State apportionment calc", "COMPLETED", "HIGH", (3, 10)),
+            ("CPA final review", "IN_PROGRESS", "URGENT", (3, 31)),
+            ("E-file 1120", "NOT_STARTED", "URGENT", (4, 15)),
+        ]),
+        (CLIENT_C_CORP_ID, "Sales Tax Q1", "Tax Prep", "ACTIVE", "Filing", (4, 30),
+         USER_ASSOC_ID, [
+            ("Pull sales reports", "COMPLETED", "MEDIUM", (4, 5)),
+            ("Calculate ST-3", "COMPLETED", "HIGH", (4, 15)),
+            ("CPA review", "COMPLETED", "HIGH", (4, 20)),
+            ("File ST-3", "IN_PROGRESS", "URGENT", (4, 30)),
+        ]),
+        (CLIENT_PARTNERSHIP_ID, "TY2025 Partnership Return", "Tax Prep", "ACTIVE", "Document Collection", (3, 15),
+         USER_CPA_ID, [
+            ("Engagement letter", "COMPLETED", "HIGH", (1, 5)),
+            ("Collect partner docs", "IN_PROGRESS", "HIGH", (2, 1)),
+            ("Enter partnership data", "NOT_STARTED", "MEDIUM", (2, 20)),
+            ("Partner allocations", "NOT_STARTED", "HIGH", (3, 1)),
+            ("CPA review & K-1s", "NOT_STARTED", "HIGH", (3, 10)),
+            ("E-file 1065", "NOT_STARTED", "URGENT", (3, 15)),
+        ]),
+        (CLIENT_PARTNERSHIP_ID, "New Client Onboarding", "Onboarding", "COMPLETED", "Complete", (1, 31),
+         USER_ASSOC_ID, [
+            ("Initial meeting", "COMPLETED", "HIGH", (1, 3)),
+            ("Send engagement letter", "COMPLETED", "MEDIUM", (1, 5)),
+            ("Collect prior returns", "COMPLETED", "MEDIUM", (1, 15)),
+            ("Set up in system", "COMPLETED", "MEDIUM", (1, 25)),
+        ]),
+    ]
+    now_utc = datetime.now(timezone.utc)
+    for cid, name, wtype, status, stage, due, assigned, tasks in workflows_spec:
+        wf_id = uuid.uuid4()
+        session.add(Workflow(
+            id=wf_id, client_id=cid, name=name, workflow_type=wtype,
+            status=WorkflowStatus(status), current_stage=stage,
+            due_date=make_date(*due), assigned_to=assigned,
+            start_date=make_date(1, 1),
+            completed_at=now_utc if status == "COMPLETED" else None,
+            tax_year=2025,
+        ))
+        await session.flush()
+        for i, (title, tstatus, priority, tdue) in enumerate(tasks):
+            session.add(WorkflowTask(
+                workflow_id=wf_id, title=title,
+                status=TaskStatusEnum(tstatus),
+                priority=TaskPriority(priority),
+                due_date=make_date(*tdue),
+                assigned_to=assigned, sort_order=i,
+                completed_at=now_utc if tstatus == "COMPLETED" else None,
+            ))
+    await session.flush()
+
+
+# ---------------------------------------------------------------------------
+# SEED DUE DATES
+# ---------------------------------------------------------------------------
+async def seed_due_dates(session: AsyncSession) -> None:
+    """Create tax filing due dates for all clients."""
+    print("  Creating due dates...")
+    due_dates_spec = [
+        # (client_id, title, due_date, form_type, filing_type, completed)
+        (CLIENT_SOLE_PROP_ID, "GA Form G-7 Q4 2024", (1, 31), "G-7", "State Payroll", True),
+        (CLIENT_SOLE_PROP_ID, "Federal Schedule C TY2024", (4, 15), "1040-C", "Federal Income", False),
+        (CLIENT_SOLE_PROP_ID, "GA Form 500 TY2024", (4, 15), "500", "State Income", False),
+        (CLIENT_SOLE_PROP_ID, "GA Form G-7 Q1 2025", (4, 30), "G-7", "State Payroll", False),
+        (CLIENT_SOLE_PROP_ID, "GA Form ST-3 Q1", (4, 20), "ST-3", "Sales Tax", False),
+        (CLIENT_S_CORP_ID, "Federal 1120-S TY2024", (3, 15), "1120-S", "Federal Income", False),
+        (CLIENT_S_CORP_ID, "GA Form 600-S TY2024", (3, 15), "600-S", "State Income", False),
+        (CLIENT_S_CORP_ID, "GA Form G-7 Q4 2024", (1, 31), "G-7", "State Payroll", True),
+        (CLIENT_S_CORP_ID, "GA Form G-7 Q1 2025", (4, 30), "G-7", "State Payroll", False),
+        (CLIENT_S_CORP_ID, "W-2s TY2024", (1, 31), "W-2", "Federal Payroll", True),
+        (CLIENT_C_CORP_ID, "Federal 1120 TY2024", (4, 15), "1120", "Federal Income", False),
+        (CLIENT_C_CORP_ID, "GA Form 600 TY2024", (4, 15), "600", "State Income", False),
+        (CLIENT_C_CORP_ID, "GA Form G-7 Q4 2024", (1, 31), "G-7", "State Payroll", True),
+        (CLIENT_C_CORP_ID, "GA Form G-7 Q1 2025", (4, 30), "G-7", "State Payroll", False),
+        (CLIENT_C_CORP_ID, "GA Form ST-3 Q1", (4, 20), "ST-3", "Sales Tax", False),
+        (CLIENT_C_CORP_ID, "W-2s TY2024", (1, 31), "W-2", "Federal Payroll", True),
+        (CLIENT_PARTNERSHIP_ID, "Federal 1065 TY2024", (3, 15), "1065", "Federal Income", False),
+        (CLIENT_PARTNERSHIP_ID, "GA Form 700 TY2024", (3, 15), "700", "State Income", False),
+        (CLIENT_PARTNERSHIP_ID, "GA Form G-7 Q4 2024", (1, 31), "G-7", "State Payroll", True),
+        (CLIENT_PARTNERSHIP_ID, "GA Form G-7 Q1 2025", (4, 30), "G-7", "State Payroll", False),
+    ]
+    now_utc = datetime.now(timezone.utc)
+    for cid, title, dd, form, filing, completed in due_dates_spec:
+        session.add(DueDate(
+            client_id=cid, title=title, due_date=make_date(*dd),
+            form_type=form, filing_type=filing, tax_year=2025,
+            is_completed=completed,
+            completed_at=now_utc if completed else None,
+            completed_by=USER_CPA_ID if completed else None,
+            remind_days_before=7,
+        ))
+    await session.flush()
+
+
+# ---------------------------------------------------------------------------
+# SEED SERVICE INVOICES (firm-to-client billing)
+# ---------------------------------------------------------------------------
+async def seed_service_invoices(session: AsyncSession) -> None:
+    """Create service invoices from CPA firm to clients."""
+    print("  Creating service invoices...")
+    invoices_spec = [
+        (CLIENT_SOLE_PROP_ID, "SI-2025-001", (1, 15), (2, 15), "PAID", [
+            ("Tax preparation - TY2024 Schedule C", "1", "1500.00", "Tax Preparation"),
+        ]),
+        (CLIENT_SOLE_PROP_ID, "SI-2025-002", (2, 1), (3, 1), "PAID", [
+            ("Monthly bookkeeping - January", "1", "500.00", "Bookkeeping"),
+        ]),
+        (CLIENT_SOLE_PROP_ID, "SI-2025-003", (3, 1), (4, 1), "SENT", [
+            ("Monthly bookkeeping - February", "1", "500.00", "Bookkeeping"),
+            ("Payroll processing - February", "1", "150.00", "Payroll Processing"),
+        ]),
+        (CLIENT_S_CORP_ID, "SI-2025-004", (1, 15), (2, 15), "PAID", [
+            ("S-Corp annual tax planning", "4", "300.00", "Advisory"),
+        ]),
+        (CLIENT_S_CORP_ID, "SI-2025-005", (2, 1), (3, 1), "PAID", [
+            ("Monthly bookkeeping - January", "1", "800.00", "Bookkeeping"),
+            ("Payroll processing - January", "1", "300.00", "Payroll Processing"),
+        ]),
+        (CLIENT_S_CORP_ID, "SI-2025-006", (3, 1), (4, 1), "SENT", [
+            ("Monthly bookkeeping - February", "1", "800.00", "Bookkeeping"),
+            ("Payroll processing - February", "1", "300.00", "Payroll Processing"),
+            ("Quarterly estimate prep", "1", "250.00", "Tax Preparation"),
+        ]),
+        (CLIENT_S_CORP_ID, "SI-2025-007", (4, 1), (5, 1), "DRAFT", [
+            ("Monthly bookkeeping - March", "1", "800.00", "Bookkeeping"),
+        ]),
+        (CLIENT_C_CORP_ID, "SI-2025-008", (1, 15), (2, 15), "PAID", [
+            ("C-Corp annual return prep", "5", "250.00", "Tax Preparation"),
+            ("Fixed asset schedule update", "3", "125.00", "Bookkeeping"),
+        ]),
+        (CLIENT_C_CORP_ID, "SI-2025-009", (2, 1), (3, 1), "PAID", [
+            ("Monthly bookkeeping - January", "1", "1200.00", "Bookkeeping"),
+            ("Sales tax compliance - Q4", "2", "250.00", "Tax Preparation"),
+        ]),
+        (CLIENT_C_CORP_ID, "SI-2025-010", (3, 1), (4, 1), "OVERDUE", [
+            ("Monthly bookkeeping - February", "1", "1200.00", "Bookkeeping"),
+            ("Payroll processing - February", "1", "350.00", "Payroll Processing"),
+        ]),
+        (CLIENT_PARTNERSHIP_ID, "SI-2025-011", (1, 15), (2, 15), "PAID", [
+            ("Partnership return prep TY2024", "4", "250.00", "Tax Preparation"),
+            ("Partner K-1 preparation", "1.5", "250.00", "Tax Preparation"),
+        ]),
+        (CLIENT_PARTNERSHIP_ID, "SI-2025-012", (2, 1), (3, 1), "PAID", [
+            ("Monthly bookkeeping - January", "1", "600.00", "Bookkeeping"),
+        ]),
+        (CLIENT_PARTNERSHIP_ID, "SI-2025-013", (3, 1), (4, 1), "SENT", [
+            ("Monthly bookkeeping - February", "1", "600.00", "Bookkeeping"),
+            ("Quarterly estimate prep", "1", "200.00", "Tax Preparation"),
+        ]),
+    ]
+    for cid, inv_num, inv_dt, due_dt, status, lines in invoices_spec:
+        inv_id = uuid.uuid4()
+        subtotal = sum(d(qty) * d(price) for _, qty, price, _ in lines)
+        paid = subtotal if status == "PAID" else Decimal("0")
+        session.add(ServiceInvoice(
+            id=inv_id, client_id=cid, invoice_number=inv_num,
+            invoice_date=make_date(*inv_dt), due_date=make_date(*due_dt),
+            subtotal=subtotal, total_amount=subtotal,
+            amount_paid=paid, balance_due=subtotal - paid,
+            status=ServiceInvoiceStatus(status),
+        ))
+        for desc, qty, price, svc in lines:
+            amt = d(qty) * d(price)
+            session.add(ServiceInvoiceLine(
+                invoice_id=inv_id, description=desc,
+                quantity=d(qty), unit_price=d(price), amount=amt,
+                service_type=svc,
+            ))
+    await session.flush()
+
+
+# ---------------------------------------------------------------------------
+# SEED PORTAL USERS & MESSAGES
+# ---------------------------------------------------------------------------
+async def seed_portal_data(
+    session: AsyncSession,
+    contact_map: dict[uuid.UUID, list[uuid.UUID]],
+) -> None:
+    """Create portal users and messages."""
+    print("  Creating portal users and messages...")
+
+    portal_users_spec = [
+        (CLIENT_SOLE_PROP_ID, 0, "mike@peachtreelandscaping.com", "Mike Patterson"),
+        (CLIENT_S_CORP_ID, 0, "james@atlantatechsolutions.com", "James Kim"),
+        (CLIENT_C_CORP_ID, 0, "rdavis@southernmfg.com", "Robert Davis"),
+        (CLIENT_PARTNERSHIP_ID, 0, "dharrison@buckheadpartners.com", "David Harrison"),
+    ]
+    portal_ids: dict[uuid.UUID, uuid.UUID] = {}
+    for cid, cidx, email, name in portal_users_spec:
+        pu_id = uuid.uuid4()
+        session.add(PortalUser(
+            id=pu_id, client_id=cid,
+            contact_id=contact_map[cid][cidx] if cid in contact_map else None,
+            email=email, password_hash=hash_password("portal123"),
+            full_name=name, is_active=True,
+        ))
+        portal_ids[cid] = pu_id
+    await session.flush()
+
+    # Messages — threaded conversations
+    now_utc = datetime.now(timezone.utc)
+    messages_spec = [
+        (CLIENT_SOLE_PROP_ID, "Tax Documents for 2024", [
+            ("STAFF", USER_CPA_ID, None, "Hi Mike, please upload your W-2s and 1099s for TY2024 when you have them. Thanks!"),
+            ("CLIENT", None, None, "Hi Edward, I have the W-2s ready. Will upload shortly. Still waiting on 1099 from the bank."),
+            ("STAFF", USER_CPA_ID, None, "Sounds good. Let me know when you have the bank 1099. We need it for the Schedule B."),
+        ]),
+        (CLIENT_SOLE_PROP_ID, "Quarterly Estimates", [
+            ("STAFF", USER_ASSOC_ID, None, "Mike, your Q1 estimated tax payment is due April 15. Amount: $2,500 federal, $800 state."),
+        ]),
+        (CLIENT_S_CORP_ID, "S-Corp Payroll Schedule", [
+            ("STAFF", USER_CPA_ID, None, "James, we need to finalize the 2025 payroll schedule. Are you staying with semi-monthly?"),
+            ("CLIENT", None, None, "Yes, semi-monthly works for us. Same dates as last year please."),
+            ("STAFF", USER_CPA_ID, None, "Perfect. I'll set up the payroll calendar and send it over for your records."),
+            ("CLIENT", None, None, "Thanks Edward. Also, we hired two new employees in January. I'll send their W-4s."),
+            ("STAFF", USER_ASSOC_ID, None, "Got the W-4s. I've added both employees to the system. They'll be included in the next payroll run."),
+        ]),
+        (CLIENT_C_CORP_ID, "Annual Return Status", [
+            ("STAFF", USER_CPA_ID, None, "Robert, your C-Corp return is in review. We should have it ready for your signature by March 31."),
+            ("CLIENT", None, None, "Great, thanks for the update. Any issues I should be aware of?"),
+            ("STAFF", USER_CPA_ID, None, "Nothing significant. Depreciation on the new equipment reduces your tax liability nicely. I'll include a summary with the return."),
+        ]),
+        (CLIENT_PARTNERSHIP_ID, "Partner K-1 Distribution", [
+            ("STAFF", USER_CPA_ID, None, "David, the K-1s for TY2024 are being prepared. Each partner should receive theirs by March 10."),
+            ("CLIENT", None, None, "Thanks Edward. Michelle is asking about the allocation percentages — are we still at 60/40?"),
+            ("STAFF", USER_CPA_ID, None, "Yes, per the operating agreement it's 60/40. No changes unless you amend the agreement."),
+        ]),
+    ]
+    for cid, subject, thread_msgs in messages_spec:
+        thread_id = uuid.uuid4()
+        for sender_type, user_id, portal_user_id, body in thread_msgs:
+            session.add(Message(
+                client_id=cid, thread_id=thread_id, subject=subject, body=body,
+                sender_type=sender_type,
+                sender_user_id=user_id if sender_type == "STAFF" else None,
+                sender_portal_user_id=portal_ids.get(cid) if sender_type == "CLIENT" else None,
+                is_read=True, read_at=now_utc,
+            ))
+    await session.flush()
+
+
+# ---------------------------------------------------------------------------
+# SEED FIXED ASSETS
+# ---------------------------------------------------------------------------
+async def seed_fixed_assets(
+    session: AsyncSession,
+    acct_maps: dict[uuid.UUID, dict[str, uuid.UUID]],
+) -> None:
+    """Create fixed assets with depreciation entries."""
+    print("  Creating fixed assets...")
+    assets_spec = [
+        (CLIENT_SOLE_PROP_ID, "Ford F-150 Work Truck", "FA-001", "Vehicles", (2023, 6, 1), "45000.00", "MACRS_GDS", 5, "5000.00", "5-year", "15000.00", "30000.00", "1500", "6600", "1550"),
+        (CLIENT_SOLE_PROP_ID, "Zero-Turn Mower", "FA-002", "Equipment", (2024, 3, 15), "12000.00", "MACRS_GDS", 7, "500.00", "7-year", "2571.43", "9428.57", "1500", "6600", "1550"),
+        (CLIENT_SOLE_PROP_ID, "Trailer 20ft", "FA-003", "Equipment", (2024, 8, 1), "8500.00", "STRAIGHT_LINE", 10, "500.00", None, "425.00", "8075.00", "1500", "6600", "1550"),
+        (CLIENT_S_CORP_ID, "Office Furniture", "FA-004", "Furniture", (2022, 1, 1), "25000.00", "MACRS_GDS", 7, "0.00", "7-year", "10714.28", "14285.72", "1500", "6600", "1550"),
+        (CLIENT_S_CORP_ID, "Server Equipment", "FA-005", "Equipment", (2023, 9, 1), "35000.00", "MACRS_GDS", 5, "0.00", "5-year", "14000.00", "21000.00", "1500", "6600", "1550"),
+        (CLIENT_S_CORP_ID, "Laptops (5)", "FA-006", "Equipment", (2025, 3, 15), "12500.00", "SECTION_179", 5, "0.00", "5-year", "0.00", "12500.00", "1500", "6600", "1550"),
+        (CLIENT_C_CORP_ID, "CNC Machine", "FA-007", "Machinery", (2021, 3, 1), "180000.00", "MACRS_GDS", 7, "10000.00", "7-year", "97142.80", "82857.20", "1500", "6600", "1550"),
+        (CLIENT_C_CORP_ID, "Forklift", "FA-008", "Equipment", (2022, 7, 1), "45000.00", "MACRS_GDS", 5, "5000.00", "5-year", "24000.00", "21000.00", "1500", "6600", "1550"),
+        (CLIENT_C_CORP_ID, "Warehouse HVAC", "FA-009", "Building Improvement", (2023, 11, 1), "65000.00", "STRAIGHT_LINE", 15, "0.00", None, "5416.67", "59583.33", "1500", "6600", "1550"),
+        (CLIENT_C_CORP_ID, "Delivery Truck", "FA-010", "Vehicles", (2024, 2, 1), "55000.00", "MACRS_GDS", 5, "8000.00", "5-year", "9400.00", "45600.00", "1500", "6600", "1550"),
+        (CLIENT_PARTNERSHIP_ID, "Office Buildout", "FA-011", "Leasehold Improvement", (2023, 1, 15), "35000.00", "STRAIGHT_LINE", 10, "0.00", None, "7000.00", "28000.00", "1500", "6600", "1550"),
+        (CLIENT_PARTNERSHIP_ID, "Conference Table & Chairs", "FA-012", "Furniture", (2023, 2, 1), "8500.00", "MACRS_GDS", 7, "0.00", "7-year", "2428.57", "6071.43", "1500", "6600", "1550"),
+    ]
+    for cid, name, num, cat, acq_dt, cost, method, life, salvage, macrs, accum, bv, asset_acct, depr_exp, accum_acct in assets_spec:
+        am = acct_maps[cid]
+        session.add(FixedAsset(
+            client_id=cid, asset_name=name, asset_number=num, category=cat,
+            acquisition_date=date(*acq_dt), acquisition_cost=d(cost),
+            depreciation_method=DepreciationMethod(method),
+            useful_life_years=life, salvage_value=d(salvage),
+            macrs_class=macrs,
+            accumulated_depreciation=d(accum), book_value=d(bv),
+            status=AssetStatus.ACTIVE,
+            asset_account_id=acct(am, asset_acct),
+            depreciation_expense_account_id=acct(am, depr_exp),
+            accumulated_depreciation_account_id=acct(am, accum_acct),
+        ))
+    await session.flush()
+
+
+# ---------------------------------------------------------------------------
+# SEED BUDGETS
+# ---------------------------------------------------------------------------
+async def seed_budgets(
+    session: AsyncSession,
+    acct_maps: dict[uuid.UUID, dict[str, uuid.UUID]],
+) -> None:
+    """Create budgets with monthly line items."""
+    print("  Creating budgets...")
+    budgets_spec = [
+        (CLIENT_SOLE_PROP_ID, "FY2025 Operating Budget", 2025, [
+            ("4000", [15000, 15000, 18000, 20000, 22000, 25000, 25000, 22000, 18000, 15000, 12000, 10000]),
+            ("6000", [8500, 8500, 8500, 8500, 8500, 8500, 8500, 8500, 8500, 8500, 8500, 8500]),
+            ("6100", [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+            ("6110", [500, 500, 500, 500, 600, 700, 750, 700, 600, 500, 500, 500]),
+            ("6200", [2000, 2000, 3000, 3500, 4000, 4000, 4000, 3500, 3000, 2000, 1500, 1000]),
+            ("6300", [400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400]),
+        ]),
+        (CLIENT_S_CORP_ID, "FY2025 Operating Budget", 2025, [
+            ("4000", [30000, 30000, 35000, 35000, 40000, 40000, 35000, 35000, 30000, 30000, 25000, 20000]),
+            ("6000", [22000, 22000, 22000, 22000, 22000, 22000, 22000, 22000, 22000, 22000, 22000, 22000]),
+            ("6100", [2500, 2500, 2500, 2500, 2500, 2500, 2500, 2500, 2500, 2500, 2500, 2500]),
+            ("6810", [3000, 3000, 3000, 3200, 3200, 3500, 3500, 3500, 3500, 3200, 3200, 3000]),
+        ]),
+        (CLIENT_C_CORP_ID, "FY2025 Operating Budget", 2025, [
+            ("4010", [40000, 40000, 45000, 45000, 50000, 50000, 45000, 45000, 40000, 40000, 35000, 35000]),
+            ("5000", [25000, 25000, 28000, 28000, 30000, 30000, 28000, 28000, 25000, 25000, 22000, 22000]),
+            ("6000", [35000, 35000, 35000, 35000, 35000, 35000, 35000, 35000, 35000, 35000, 35000, 35000]),
+            ("6200", [5000, 5000, 6000, 6000, 7000, 7000, 6000, 6000, 5000, 5000, 4000, 4000]),
+        ]),
+    ]
+    for cid, name, fy, lines in budgets_spec:
+        am = acct_maps[cid]
+        budget_id = uuid.uuid4()
+        session.add(Budget(
+            id=budget_id, client_id=cid, name=name, fiscal_year=fy,
+            is_active=True,
+        ))
+        await session.flush()
+        for acct_num, months in lines:
+            annual = sum(months)
+            session.add(BudgetLine(
+                budget_id=budget_id, account_id=acct(am, acct_num),
+                month_1=d(str(months[0])), month_2=d(str(months[1])),
+                month_3=d(str(months[2])), month_4=d(str(months[3])),
+                month_5=d(str(months[4])), month_6=d(str(months[5])),
+                month_7=d(str(months[6])), month_8=d(str(months[7])),
+                month_9=d(str(months[8])), month_10=d(str(months[9])),
+                month_11=d(str(months[10])), month_12=d(str(months[11])),
+                annual_total=d(str(annual)),
+            ))
+    await session.flush()
+
+
+# ---------------------------------------------------------------------------
+# SEED SERVICE TYPES
+# ---------------------------------------------------------------------------
+async def seed_service_types(session: AsyncSession) -> None:
+    """Create service type definitions."""
+    print("  Creating service types...")
+    types = [
+        ("Tax Preparation", "Individual and business tax return preparation", "250.00"),
+        ("Bookkeeping", "Monthly transaction recording and reconciliation", "125.00"),
+        ("Payroll Processing", "Payroll calculation, filing, and compliance", "150.00"),
+        ("Advisory", "Business and tax advisory services", "300.00"),
+        ("Audit & Assurance", "Financial statement audit and review", "275.00"),
+    ]
+    for name, desc, rate in types:
+        await session.execute(text(
+            "INSERT INTO service_types (name, description, default_hourly_rate) "
+            "VALUES (:name, :desc, :rate) ON CONFLICT (name) DO NOTHING"
+        ), {"name": name, "desc": desc, "rate": rate})
+    await session.flush()
+
+
+# ---------------------------------------------------------------------------
 # MAIN
 # ---------------------------------------------------------------------------
 async def seed() -> None:
@@ -1497,6 +2134,19 @@ async def seed() -> None:
             await seed_payroll(session, emp_map)
             await seed_documents(session)
             await seed_tax_tables(session)
+            # Phase 9-12: Practice management
+            await seed_staff_rates(session)
+            await seed_time_entries(session)
+            contact_map = await seed_contacts(session)
+            await seed_engagements(session)
+            await seed_workflow_stages(session)
+            await seed_workflows(session)
+            await seed_due_dates(session)
+            await seed_service_invoices(session)
+            await seed_portal_data(session, contact_map)
+            await seed_fixed_assets(session, acct_maps)
+            await seed_budgets(session, acct_maps)
+            await seed_service_types(session)
 
     print("\nSeed complete! Summary:")
     print("  Users: 2 (CPA_OWNER + ASSOCIATE)")
@@ -1511,6 +2161,19 @@ async def seed() -> None:
     print("  Payroll Runs: 23 with items per employee")
     print("  Documents: 14 metadata records")
     print("  Tax Tables: ~30 rows (TY2025)")
+    print("  Staff Rates: 4 (2 per user)")
+    print("  Time Entries: 23 across all clients")
+    print("  Contacts: 10 across all clients")
+    print("  Engagements: 10 across all clients")
+    print("  Workflow Stages: 25 (5 types)")
+    print("  Workflows: 8 with ~40 tasks")
+    print("  Due Dates: 20 tax filing deadlines")
+    print("  Service Invoices: 13 (firm billing)")
+    print("  Portal Users: 4 (one per client)")
+    print("  Messages: ~15 threaded messages")
+    print("  Fixed Assets: 12 with depreciation")
+    print("  Budgets: 3 with monthly lines")
+    print("  Service Types: 5")
     print("\nLogin:")
     print("  CPA_OWNER: edward@755mortgage.com / admin123")
     print("  ASSOCIATE: sarah@755mortgage.com / associate123")

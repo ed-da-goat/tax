@@ -11,16 +11,17 @@ Compliance requirements (CLAUDE.md):
 from dataclasses import dataclass
 from typing import Annotated, Callable
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError
 
+from app.auth.blacklist import blacklist
 from app.auth.jwt import verify_token
 
 # ---------------------------------------------------------------------------
-# Security scheme
+# Security scheme — auto_error=False so we can fall back to cookie
 # ---------------------------------------------------------------------------
-bearer_scheme = HTTPBearer()
+bearer_scheme = HTTPBearer(auto_error=False)
 
 
 # ---------------------------------------------------------------------------
@@ -44,23 +45,49 @@ class CurrentUser:
 
 # ---------------------------------------------------------------------------
 # Core auth dependency — extracts and validates the JWT
+# Reads from HTTP-Only cookie first, falls back to Authorization header.
 # ---------------------------------------------------------------------------
 async def get_current_user(
+    request: Request,
     credentials: Annotated[
-        HTTPAuthorizationCredentials, Depends(bearer_scheme)
-    ],
+        HTTPAuthorizationCredentials | None, Depends(bearer_scheme)
+    ] = None,
 ) -> CurrentUser:
     """
-    Extract the current user from the Bearer token.
+    Extract the current user from the HTTP-Only cookie or Bearer token.
 
-    Raises HTTP 401 if the token is missing, expired, or invalid.
+    Priority: cookie 'access_token' > Authorization header.
+    Raises HTTP 401 if no valid token is found.
     """
+    # Try HTTP-Only cookie first (browser clients)
+    raw_token = request.cookies.get("access_token")
+
+    # Fall back to Authorization: Bearer header (API clients)
+    if not raw_token and credentials:
+        raw_token = credentials.credentials
+
+    if not raw_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     try:
-        payload = verify_token(credentials.credentials)
+        payload = verify_token(raw_token)
     except JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Check if token has been revoked (server-side logout)
+    jti = payload.get("jti")
+    if jti and blacklist.is_revoked(jti):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has been revoked",
             headers={"WWW-Authenticate": "Bearer"},
         )
 

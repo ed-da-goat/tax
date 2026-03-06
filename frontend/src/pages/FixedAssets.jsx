@@ -7,7 +7,7 @@ import Toast from '../components/Toast';
 import { formatCurrency, formatDate } from '../utils/format';
 
 const STATUS_COLORS = {
-  ACTIVE: '#10B981', FULLY_DEPRECIATED: '#3B82F6', DISPOSED: '#EF4444', TRANSFERRED: '#9CA3AF',
+  ACTIVE: '#10B981', FULLY_DEPRECIATED: '#3d6d8e', DISPOSED: '#EF4444', TRANSFERRED: '#9CA3AF',
 };
 
 const DEPRECIATION_METHODS = [
@@ -137,8 +137,7 @@ export default function FixedAssets() {
       )}
 
       {/* Add Asset Modal */}
-      {showAdd && (
-        <Modal title="Add Fixed Asset" onClose={() => setShowAdd(false)} wide>
+      <Modal isOpen={showAdd} title="Add Fixed Asset" onClose={() => setShowAdd(false)} size="lg">
           <form onSubmit={handleCreate}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <FormField label="Asset Name" required>
@@ -203,12 +202,10 @@ export default function FixedAssets() {
               <button type="submit" className="btn btn--primary" disabled={createAsset.isPending}>Create</button>
             </div>
           </form>
-        </Modal>
-      )}
+      </Modal>
 
       {/* Dispose Modal */}
-      {showDispose && (
-        <Modal title="Dispose Asset" onClose={() => setShowDispose(null)}>
+      <Modal isOpen={!!showDispose} title="Dispose Asset" onClose={() => setShowDispose(null)}>
           <form onSubmit={handleDispose}>
             <FormField label="Disposal Date" required>
               <input type="date" value={disposeForm.disposal_date} onChange={e => setDisposeForm(f => ({ ...f, disposal_date: e.target.value }))} required />
@@ -229,12 +226,10 @@ export default function FixedAssets() {
               <button type="submit" className="btn btn--primary" disabled={disposeAsset.isPending}>Dispose</button>
             </div>
           </form>
-        </Modal>
-      )}
+      </Modal>
 
       {/* Depreciation Schedule Modal */}
-      {showSchedule && (
-        <Modal title={`Depreciation Schedule — ${showSchedule.asset_name}`} onClose={() => setShowSchedule(null)} wide>
+      <Modal isOpen={!!showSchedule} title={`Depreciation Schedule — ${showSchedule?.asset_name}`} onClose={() => setShowSchedule(null)} size="lg">
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
@@ -246,7 +241,7 @@ export default function FixedAssets() {
               </tr>
             </thead>
             <tbody>
-              {(showSchedule.depreciation_schedule || []).map((entry, i) => (
+              {(showSchedule?.depreciation_schedule || []).map((entry, i) => (
                 <tr key={i} style={{ borderBottom: '1px solid #e5e7eb' }}>
                   <td style={{ padding: '8px' }}>{entry.fiscal_year}</td>
                   <td style={{ padding: '8px' }}>{formatDate(entry.period_start)} — {formatDate(entry.period_end)}</td>
@@ -260,8 +255,7 @@ export default function FixedAssets() {
           <div className="modal-actions">
             <button type="button" className="btn btn--outline" onClick={() => setShowSchedule(null)}>Close</button>
           </div>
-        </Modal>
-      )}
+      </Modal>
 
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
     </div>

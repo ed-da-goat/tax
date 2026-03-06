@@ -16,7 +16,7 @@ from datetime import date, datetime, timezone
 from decimal import Decimal
 
 from fastapi import HTTPException, status
-from sqlalchemy import Row, column, func, literal_column, select, text
+from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import CurrentUser, verify_role
@@ -54,60 +54,72 @@ class ApprovalService:
         Compliance (rule #4): Filters by client_id when provided.
         Compliance (rule #5): Only returns PENDING_APPROVAL entries.
         """
-        # Use raw SQL for the queue query to avoid ORM join complexity
-        where_clauses = [
-            "je.status = 'PENDING_APPROVAL'",
-            "je.deleted_at IS NULL",
+        # Build WHERE conditions using SQLAlchemy expressions
+        conditions = [
+            JournalEntry.status == JournalEntryStatus.PENDING_APPROVAL,
+            JournalEntry.deleted_at.is_(None),
         ]
-        params: dict = {}
 
         # ASSOCIATE can only see their own entries
         if current_user.role == "ASSOCIATE":
-            where_clauses.append("je.created_by = :user_id")
-            params["user_id"] = current_user.user_id
+            conditions.append(JournalEntry.created_by == current_user.user_id)
 
         # Optional filters
         if client_id is not None:
-            where_clauses.append("je.client_id = :client_id")
-            params["client_id"] = str(client_id)
+            conditions.append(JournalEntry.client_id == client_id)
         if date_from is not None:
-            where_clauses.append("je.entry_date >= :date_from")
-            params["date_from"] = date_from
+            conditions.append(JournalEntry.entry_date >= date_from)
         if date_to is not None:
-            where_clauses.append("je.entry_date <= :date_to")
-            params["date_to"] = date_to
-
-        where_sql = " AND ".join(where_clauses)
+            conditions.append(JournalEntry.entry_date <= date_to)
 
         # Count query
-        count_sql = text(
-            f"SELECT COUNT(*) FROM journal_entries je WHERE {where_sql}"
+        count_stmt = (
+            select(func.count())
+            .select_from(JournalEntry)
+            .where(*conditions)
         )
-        total_result = await db.execute(count_sql, params)
+        total_result = await db.execute(count_stmt)
         total = total_result.scalar_one()
 
         # Main query with client name and line totals
-        main_sql = text(
-            f"SELECT je.id, je.client_id, c.name AS client_name, "
-            f"  je.entry_date, je.description, je.reference_number, "
-            f"  je.created_by, je.created_at, je.updated_at, "
-            f"  COALESCE(SUM(jel.debit), 0) AS total_debits, "
-            f"  COALESCE(SUM(jel.credit), 0) AS total_credits "
-            f"FROM journal_entries je "
-            f"JOIN clients c ON c.id = je.client_id "
-            f"LEFT JOIN journal_entry_lines jel ON jel.journal_entry_id = je.id "
-            f"  AND jel.deleted_at IS NULL "
-            f"WHERE {where_sql} "
-            f"GROUP BY je.id, je.client_id, c.name, je.entry_date, "
-            f"  je.description, je.reference_number, je.created_by, "
-            f"  je.created_at, je.updated_at "
-            f"ORDER BY je.entry_date ASC, je.created_at ASC "
-            f"OFFSET :skip LIMIT :limit"
+        main_stmt = (
+            select(
+                JournalEntry.id,
+                JournalEntry.client_id,
+                Client.name.label("client_name"),
+                JournalEntry.entry_date,
+                JournalEntry.description,
+                JournalEntry.reference_number,
+                JournalEntry.created_by,
+                JournalEntry.created_at,
+                JournalEntry.updated_at,
+                func.coalesce(func.sum(JournalEntryLine.debit), 0).label("total_debits"),
+                func.coalesce(func.sum(JournalEntryLine.credit), 0).label("total_credits"),
+            )
+            .join(Client, Client.id == JournalEntry.client_id)
+            .outerjoin(
+                JournalEntryLine,
+                (JournalEntryLine.journal_entry_id == JournalEntry.id)
+                & (JournalEntryLine.deleted_at.is_(None)),
+            )
+            .where(*conditions)
+            .group_by(
+                JournalEntry.id,
+                JournalEntry.client_id,
+                Client.name,
+                JournalEntry.entry_date,
+                JournalEntry.description,
+                JournalEntry.reference_number,
+                JournalEntry.created_by,
+                JournalEntry.created_at,
+                JournalEntry.updated_at,
+            )
+            .order_by(JournalEntry.entry_date.asc(), JournalEntry.created_at.asc())
+            .offset(skip)
+            .limit(limit)
         )
-        params["skip"] = skip
-        params["limit"] = limit
 
-        result = await db.execute(main_sql, params)
+        result = await db.execute(main_stmt)
         rows = result.all()
 
         items = []

@@ -2,11 +2,11 @@ import { useMemo } from 'react';
 import axios from 'axios';
 import useAuth from './useAuth';
 
-const API_BASE = 'http://localhost:8000';
+const API_BASE = import.meta.env.VITE_API_BASE || '';
 
 /**
- * Returns an axios instance that automatically injects the JWT
- * Bearer token from AuthContext into every request.
+ * Returns an axios instance that sends the HTTP-Only cookie
+ * automatically via withCredentials: true.
  *
  * If a 401 response is received the user is logged out.
  *
@@ -15,7 +15,7 @@ const API_BASE = 'http://localhost:8000';
  *   const { data } = await api.get('/api/clients');
  */
 export default function useApi() {
-  const { token, logout } = useAuth();
+  const { logout } = useAuth();
 
   const api = useMemo(() => {
     const instance = axios.create({
@@ -23,14 +23,7 @@ export default function useApi() {
       headers: {
         'Content-Type': 'application/json',
       },
-    });
-
-    // Request interceptor -- attach JWT
-    instance.interceptors.request.use((config) => {
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-      return config;
+      withCredentials: true,
     });
 
     // Response interceptor -- auto-logout on 401
@@ -45,7 +38,7 @@ export default function useApi() {
     );
 
     return instance;
-  }, [token, logout]);
+  }, [logout]);
 
   return api;
 }

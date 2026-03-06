@@ -32,6 +32,7 @@ class LoginRequest(BaseModel):
 
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
+    totp_code: str | None = Field(default=None, min_length=6, max_length=6)
 
 
 class UserResponse(BaseModel):
@@ -55,6 +56,7 @@ class LoginResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserResponse
+    requires_2fa: bool = False
 
 
 class UserCreate(BaseModel):

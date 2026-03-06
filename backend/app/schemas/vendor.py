@@ -19,6 +19,7 @@ class VendorCreate(BaseSchema):
     """Schema for creating a new vendor."""
 
     name: str = Field(..., min_length=1, max_length=255)
+    tax_id: str | None = Field(None, max_length=20)
     address: str | None = Field(None, max_length=500)
     city: str | None = Field(None, max_length=100)
     state: str | None = Field(None, max_length=2)
@@ -32,6 +33,7 @@ class VendorUpdate(BaseSchema):
     """Schema for updating an existing vendor. All fields optional."""
 
     name: str | None = Field(None, min_length=1, max_length=255)
+    tax_id: str | None = Field(None, max_length=20)
     address: str | None = Field(None, max_length=500)
     city: str | None = Field(None, max_length=100)
     state: str | None = Field(None, max_length=2)

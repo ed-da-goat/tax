@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import useAuth from '../hooks/useAuth';
 import RoleGate from './RoleGate';
@@ -177,7 +178,31 @@ const NAV_SECTIONS = [
       { to: '/portal', label: 'Portal Admin', icon: 'portal', cpaOnly: true },
     ],
   },
+  {
+    label: 'System',
+    items: [
+      { to: '/audit-trail', label: 'Audit Trail', icon: 'documents' },
+      { to: '/admin', label: 'System Admin', icon: 'dashboard', cpaOnly: true },
+    ],
+  },
 ];
+
+/* ---- Search result type → route mapping ---- */
+const SEARCH_TYPE_ROUTES = {
+  client: (r) => `/clients/${r.id}`,
+  vendor: (r) => `/clients/${r.client_id}`,
+  employee: (r) => `/employees`,
+  invoice: (r) => `/clients/${r.client_id}`,
+  bill: (r) => `/clients/${r.client_id}`,
+};
+
+const SEARCH_TYPE_LABELS = {
+  clients: 'Clients',
+  vendors: 'Vendors',
+  employees: 'Employees',
+  invoices: 'Invoices',
+  bills: 'Bills',
+};
 
 export default function Layout() {
   const { user, logout } = useAuth();
@@ -191,6 +216,81 @@ export default function Layout() {
   );
   const pendingCount = approvals?.total ?? 0;
 
+  // --- Global Search (Cmd+K) ---
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [selectedIdx, setSelectedIdx] = useState(0);
+  const searchInputRef = useRef(null);
+  const searchTimerRef = useRef(null);
+
+  // Cmd+K / Ctrl+K to open
+  useEffect(() => {
+    function handleKeyDown(e) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setSearchOpen((prev) => !prev);
+      }
+      if (e.key === 'Escape') setSearchOpen(false);
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Focus input when opening
+  useEffect(() => {
+    if (searchOpen) {
+      setSearchQuery('');
+      setSearchResults(null);
+      setSelectedIdx(0);
+      setTimeout(() => searchInputRef.current?.focus(), 50);
+    }
+  }, [searchOpen]);
+
+  // Debounced search
+  const doSearch = useCallback(async (q) => {
+    if (q.length < 2) { setSearchResults(null); return; }
+    setSearchLoading(true);
+    try {
+      const res = await fetch(`/api/v1/search?q=${encodeURIComponent(q)}&limit=8`, { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        setSearchResults(data);
+        setSelectedIdx(0);
+      }
+    } catch { /* ignore */ }
+    setSearchLoading(false);
+  }, []);
+
+  function handleSearchInput(e) {
+    const q = e.target.value;
+    setSearchQuery(q);
+    clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => doSearch(q), 250);
+  }
+
+  // Flatten results for keyboard navigation
+  const flatResults = searchResults
+    ? Object.entries(searchResults).flatMap(([, items]) => items)
+    : [];
+
+  function handleSearchKeyDown(e) {
+    if (e.key === 'ArrowDown') { e.preventDefault(); setSelectedIdx((i) => Math.min(i + 1, flatResults.length - 1)); }
+    if (e.key === 'ArrowUp') { e.preventDefault(); setSelectedIdx((i) => Math.max(i - 1, 0)); }
+    if (e.key === 'Enter' && flatResults[selectedIdx]) {
+      e.preventDefault();
+      navigateToResult(flatResults[selectedIdx]);
+    }
+  }
+
+  function navigateToResult(result) {
+    const routeFn = SEARCH_TYPE_ROUTES[result.type];
+    if (routeFn) navigate(routeFn(result));
+    setSearchOpen(false);
+  }
+
   function handleLogout() {
     logout();
     navigate('/login');
@@ -198,10 +298,71 @@ export default function Layout() {
 
   return (
     <div className="layout">
+      {/* ---- Global Search Modal ---- */}
+      {searchOpen && (
+        <div className="search-modal-backdrop" onClick={() => setSearchOpen(false)}>
+          <div className="search-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="search-modal-input-wrap">
+              <svg className="search-modal-icon" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="7.5" cy="7.5" r="5.5" /><path d="M12 12l4.5 4.5" />
+              </svg>
+              <input
+                ref={searchInputRef}
+                className="search-modal-input"
+                placeholder="Search clients, vendors, employees, invoices..."
+                value={searchQuery}
+                onChange={handleSearchInput}
+                onKeyDown={handleSearchKeyDown}
+              />
+              <kbd className="search-modal-kbd">ESC</kbd>
+            </div>
+            {searchLoading && <div className="search-modal-loading">Searching...</div>}
+            {searchResults && !searchLoading && (
+              <div className="search-modal-results">
+                {flatResults.length === 0 ? (
+                  <div className="search-modal-empty">No results for "{searchQuery}"</div>
+                ) : (
+                  Object.entries(searchResults).map(([category, items]) => {
+                    if (!items.length) return null;
+                    return (
+                      <div key={category} className="search-modal-category">
+                        <div className="search-modal-category-label">{SEARCH_TYPE_LABELS[category] || category}</div>
+                        {items.map((item) => {
+                          const idx = flatResults.indexOf(item);
+                          return (
+                            <div
+                              key={`${item.type}-${item.id}`}
+                              className={'search-modal-item' + (idx === selectedIdx ? ' search-modal-item--active' : '')}
+                              onClick={() => navigateToResult(item)}
+                              onMouseEnter={() => setSelectedIdx(idx)}
+                            >
+                              <span className="search-modal-item-name">{item.name}</span>
+                              {item.client_name && <span className="search-modal-item-sub">{item.client_name}</span>}
+                              {item.status && <span className={`badge badge--${item.status.toLowerCase()}`}>{item.status}</span>}
+                              {item.amount != null && <span className="search-modal-item-amount">${item.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            )}
+            {!searchResults && !searchLoading && (
+              <div className="search-modal-hint">Type at least 2 characters to search</div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ---- Mobile sidebar overlay ---- */}
+      <div className={`sidebar-overlay${sidebarOpen ? ' sidebar-overlay--open' : ''}`} onClick={() => setSidebarOpen(false)} />
+
       {/* ---- Sidebar ---- */}
-      <aside className="sidebar">
+      <aside className={`sidebar${sidebarOpen ? ' sidebar--open' : ''}`}>
         <div className="sidebar-brand">
-          <h2>GA&nbsp;CPA</h2>
+          <h2>755&nbsp;Accounting</h2>
           <span className="sidebar-subtitle">Accounting System</span>
         </div>
 
@@ -214,6 +375,7 @@ export default function Layout() {
                   <NavLink
                     key={item.to}
                     to={item.to}
+                    onClick={() => setSidebarOpen(false)}
                     className={({ isActive }) =>
                       'nav-link' + (isActive ? ' nav-link--active' : '')
                     }
@@ -245,7 +407,20 @@ export default function Layout() {
       {/* ---- Main content area ---- */}
       <div className="main-area">
         <header className="topbar">
-          <div className="topbar-left" />
+          <div className="topbar-left">
+            <button className="hamburger-btn" onClick={() => setSidebarOpen(!sidebarOpen)}>
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                <path d="M3 5h14" /><path d="M3 10h14" /><path d="M3 15h14" />
+              </svg>
+            </button>
+            <button className="search-trigger" onClick={() => setSearchOpen(true)}>
+              <svg width="14" height="14" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="7.5" cy="7.5" r="5.5" /><path d="M12 12l4.5 4.5" />
+              </svg>
+              Search...
+              <kbd className="search-trigger-kbd">{navigator.platform?.includes('Mac') ? '\u2318' : 'Ctrl'}K</kbd>
+            </button>
+          </div>
           <div className="topbar-right">
             <span className="topbar-user">
               {user?.full_name ?? 'User'}

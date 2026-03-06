@@ -15,6 +15,8 @@ const FORM_TABS = [
   { key: '1120', label: '1120' },
   { key: '1065', label: '1065' },
   { key: 'checklist', label: 'Checklist' },
+  { key: 'w2', label: 'W-2' },
+  { key: '1099', label: '1099-NEC' },
 ];
 
 const API_MAP = {
@@ -27,6 +29,8 @@ const API_MAP = {
   1120: 'form-1120',
   1065: 'form-1065',
   checklist: 'checklist',
+  w2: 'w2',
+  1099: '1099-nec',
 };
 
 export default function TaxExports() {
@@ -157,6 +161,120 @@ export default function TaxExports() {
     </div>
   );
 
+  const downloadPdf = async (url, filename) => {
+    try {
+      const res = await api.get(url, { params: { tax_year: taxYear }, responseType: 'blob' });
+      const blobUrl = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (e) {
+      setError(e.response?.data?.detail || 'PDF download failed');
+    }
+  };
+
+  const renderW2 = () => data && (
+    <div className="card">
+      <h3>W-2 Forms — TY{data.tax_year || taxYear}</h3>
+      <p style={{ color: 'var(--color-text-muted)', marginBottom: 16 }}>
+        Employer: {data.employer_name} | {data.employer_address}
+      </p>
+      <div style={{ marginBottom: 16 }}>
+        <button className="btn btn--outline" onClick={() => downloadPdf(`/api/v1/tax/clients/${clientId}/w2/pdf`, `w2-all-${clientId}-${taxYear}.pdf`)}>
+          Download All W-2s (PDF)
+        </button>
+      </div>
+      <table className="table">
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>SSN</th>
+            <th style={{ textAlign: 'right' }}>Box 1 Wages</th>
+            <th style={{ textAlign: 'right' }}>Box 2 Fed W/H</th>
+            <th style={{ textAlign: 'right' }}>Box 3 SS Wages</th>
+            <th style={{ textAlign: 'right' }}>Box 4 SS W/H</th>
+            <th style={{ textAlign: 'right' }}>Box 5 Med Wages</th>
+            <th style={{ textAlign: 'right' }}>Box 6 Med W/H</th>
+            <th style={{ textAlign: 'right' }}>Box 16 State Wages</th>
+            <th style={{ textAlign: 'right' }}>Box 17 State W/H</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {(data.w2s || []).map((w) => (
+            <tr key={w.employee_id}>
+              <td>{w.employee_name}</td>
+              <td>{w.ssn_masked}</td>
+              <td style={{ textAlign: 'right' }}>{formatCurrency(w.box1_wages)}</td>
+              <td style={{ textAlign: 'right' }}>{formatCurrency(w.box2_fed_withheld)}</td>
+              <td style={{ textAlign: 'right' }}>{formatCurrency(w.box3_ss_wages)}</td>
+              <td style={{ textAlign: 'right' }}>{formatCurrency(w.box4_ss_withheld)}</td>
+              <td style={{ textAlign: 'right' }}>{formatCurrency(w.box5_medicare_wages)}</td>
+              <td style={{ textAlign: 'right' }}>{formatCurrency(w.box6_medicare_withheld)}</td>
+              <td style={{ textAlign: 'right' }}>{formatCurrency(w.box16_state_wages)}</td>
+              <td style={{ textAlign: 'right' }}>{formatCurrency(w.box17_state_withheld)}</td>
+              <td>
+                <button className="btn btn--small btn--outline" onClick={() => downloadPdf(`/api/v1/tax/clients/${clientId}/w2/${w.employee_id}/pdf`, `w2-${w.employee_id}-${taxYear}.pdf`)}>
+                  PDF
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {(data.w2s || []).length === 0 && (
+        <p style={{ color: 'var(--color-text-muted)', marginTop: 8 }}>No W-2 data found for this client and tax year.</p>
+      )}
+    </div>
+  );
+
+  const renderForm1099 = () => data && (
+    <div className="card">
+      <h3>1099-NEC Forms — TY{data.tax_year || taxYear}</h3>
+      <p style={{ color: 'var(--color-text-muted)', marginBottom: 16 }}>
+        Payer: {data.payer_name} | {data.payer_address}
+      </p>
+      <div style={{ marginBottom: 16 }}>
+        <button className="btn btn--outline" onClick={() => downloadPdf(`/api/v1/tax/clients/${clientId}/1099-nec/pdf`, `1099-nec-all-${clientId}-${taxYear}.pdf`)}>
+          Download All 1099-NECs (PDF)
+        </button>
+      </div>
+      <table className="table">
+        <thead>
+          <tr>
+            <th>Vendor</th>
+            <th>TIN</th>
+            <th style={{ textAlign: 'right' }}>Nonemployee Compensation</th>
+            <th>Payer TIN</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {(data.forms || []).map((f) => (
+            <tr key={f.vendor_id}>
+              <td>{f.vendor_name}</td>
+              <td>{f.vendor_tin_masked}</td>
+              <td style={{ textAlign: 'right' }}>{formatCurrency(f.nonemployee_compensation)}</td>
+              <td>{f.payer_tin_masked}</td>
+              <td>
+                <button className="btn btn--small btn--outline" onClick={() => downloadPdf(`/api/v1/tax/clients/${clientId}/1099-nec/${f.vendor_id}/pdf`, `1099-nec-${f.vendor_id}-${taxYear}.pdf`)}>
+                  PDF
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {(data.forms || []).length === 0 && (
+        <p style={{ color: 'var(--color-text-muted)', marginTop: 8 }}>No 1099-NEC data found for this client and tax year.</p>
+      )}
+    </div>
+  );
+
   const formTitles = {
     500: 'Georgia Form 500 (Individual)',
     600: 'Georgia Form 600 (Corporate)',
@@ -207,6 +325,8 @@ export default function TaxExports() {
         {tab === 'st3' && renderST3()}
         {tab === 'checklist' && renderChecklist()}
         {['500', '600', 'schedule-c', '1120s', '1120', '1065'].includes(tab) && renderIncomeForm(formTitles[tab])}
+        {tab === 'w2' && renderW2()}
+        {tab === '1099' && renderForm1099()}
       </div>
     </RoleGate>
   );
