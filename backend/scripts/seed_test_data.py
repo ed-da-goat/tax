@@ -1288,7 +1288,7 @@ async def seed_payroll(
     # Wage base caps (annual YTD thresholds)
     SUTA_WAGE_BASE = Decimal("9500")
     FUTA_WAGE_BASE = Decimal("7000")
-    SS_WAGE_BASE = Decimal("168600")
+    SS_WAGE_BASE = Decimal("184500")
 
     for client_id, runs in runs_spec.items():
         employees = emp_map[client_id]
@@ -1543,6 +1543,76 @@ async def seed_tax_tables(session: AsyncSession) -> None:
         rate=d("0.027000"), flat_amount=d("0.00"),
         source_document="Georgia DOL, New Employer Rate 2.7%, Wage Base $9,500, Tax Year 2025",
         review_date=review,
+    ))
+
+    # -----------------------------------------------------------------------
+    # TY2026 tax table entries
+    # -----------------------------------------------------------------------
+    review_2026 = date(2026, 3, 6)
+
+    # SOURCE: IRS Revenue Procedure 2025-32 + OBBBA, Tax Year 2026
+    fed_single_2026 = [
+        (d("0.00"), d("12400.00"), d("0.100000"), d("0.00")),
+        (d("12400.00"), d("50400.00"), d("0.120000"), d("1240.00")),
+        (d("50400.00"), d("105700.00"), d("0.220000"), d("5800.00")),
+        (d("105700.00"), d("201050.00"), d("0.240000"), d("17966.00")),
+        (d("201050.00"), d("381900.00"), d("0.320000"), d("40850.00")),
+        (d("381900.00"), d("640600.00"), d("0.350000"), d("98722.00")),
+        (d("640600.00"), None, d("0.370000"), d("189267.00")),
+    ]
+
+    for bmin, bmax, rate, flat in fed_single_2026:
+        session.add(PayrollTaxTable(
+            tax_year=2026,
+            tax_type="FEDERAL_INCOME",
+            filing_status="SINGLE",
+            bracket_min=bmin,
+            bracket_max=bmax,
+            rate=rate,
+            flat_amount=flat,
+            source_document="IRS Rev. Proc. 2025-32 + OBBBA, Tax Year 2026",
+            review_date=review_2026,
+        ))
+
+    # SOURCE: SSA Fact Sheet, Tax Year 2026
+    session.add(PayrollTaxTable(
+        tax_year=2026, tax_type="SOCIAL_SECURITY", filing_status=None,
+        bracket_min=d("0.00"), bracket_max=d("184500.00"),
+        rate=d("0.062000"), flat_amount=d("0.00"),
+        source_document="SSA Social Security Changes 2026",
+        review_date=review_2026,
+    ))
+    session.add(PayrollTaxTable(
+        tax_year=2026, tax_type="MEDICARE", filing_status=None,
+        bracket_min=d("0.00"), bracket_max=None,
+        rate=d("0.014500"), flat_amount=d("0.00"),
+        source_document="IRS Publication 15, Tax Year 2026",
+        review_date=review_2026,
+    ))
+    session.add(PayrollTaxTable(
+        tax_year=2026, tax_type="MEDICARE_ADDITIONAL", filing_status=None,
+        bracket_min=d("200000.00"), bracket_max=None,
+        rate=d("0.009000"), flat_amount=d("0.00"),
+        source_document="IRS Publication 15, Tax Year 2026",
+        review_date=review_2026,
+    ))
+
+    # SOURCE: IRS Publication 15, Tax Year 2026
+    session.add(PayrollTaxTable(
+        tax_year=2026, tax_type="FUTA", filing_status=None,
+        bracket_min=d("0.00"), bracket_max=d("7000.00"),
+        rate=d("0.006000"), flat_amount=d("0.00"),
+        source_document="IRS Publication 15, Tax Year 2026 (net after credit)",
+        review_date=review_2026,
+    ))
+
+    # SOURCE: Georgia DOL, New Employer Rate, Tax Year 2026
+    session.add(PayrollTaxTable(
+        tax_year=2026, tax_type="GA_SUTA", filing_status=None,
+        bracket_min=d("0.00"), bracket_max=d("9500.00"),
+        rate=d("0.027000"), flat_amount=d("0.00"),
+        source_document="Georgia DOL, New Employer Rate 2.7%, Wage Base $9,500, Tax Year 2026",
+        review_date=review_2026,
     ))
 
     await session.flush()

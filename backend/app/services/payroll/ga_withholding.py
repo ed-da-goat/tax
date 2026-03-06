@@ -35,9 +35,11 @@ GA_PERSONAL_ALLOWANCE_2024 = Decimal("2700.00")
 # REVIEW DATE: 2026-03-04
 GA_PERSONAL_ALLOWANCE_2025 = Decimal("2700.00")
 
-# SOURCE: Georgia DOR, Employer's Tax Guide 2026 (projected per HB 1015)
-# REVIEW DATE: 2026-03-04
-# COMPLIANCE REVIEW NEEDED: Verify 2026 personal allowance with GA DOR publication
+# SOURCE: GA Code §48-7-26, HB 1437 (2022), effective TY2024+
+# REVIEW DATE: 2026-03-06
+# NOTE: Personal exemptions for taxpayer/spouse repealed TY2024+.
+#   Dependent exemption is $4,000 per qualifying dependent.
+#   The personal allowance here is the per-G-4-allowance withholding deduction.
 GA_PERSONAL_ALLOWANCE_2026 = Decimal("2700.00")
 
 # Standard deductions by filing status and year
@@ -56,13 +58,15 @@ GA_STANDARD_DEDUCTIONS: dict[int, dict[str, Decimal]] = {
         "MARRIED": Decimal("7100.00"),
         "HEAD_OF_HOUSEHOLD": Decimal("5400.00"),
     },
-    # SOURCE: Georgia DOR, Employer's Tax Guide 2026 (projected per HB 1015)
-    # REVIEW DATE: 2026-03-04
-    # COMPLIANCE REVIEW NEEDED: Verify 2026 standard deductions with GA DOR
+    # SOURCE: GA Code §48-7-26, as amended by HB 1437 (2022)
+    # REVIEW DATE: 2026-03-06
+    # COMPLIANCE REVIEW NEEDED: Georgia has not adopted OBBBA (signed Jul 4, 2025).
+    #   State standard deduction and other provisions may diverge from federal.
+    #   Monitor 2026 GA legislative session for conformity bill.
     2026: {
-        "SINGLE": Decimal("5400.00"),
-        "MARRIED": Decimal("7100.00"),
-        "HEAD_OF_HOUSEHOLD": Decimal("5400.00"),
+        "SINGLE": Decimal("12000.00"),
+        "MARRIED": Decimal("24000.00"),
+        "HEAD_OF_HOUSEHOLD": Decimal("12000.00"),
     },
 }
 
@@ -98,10 +102,12 @@ GA_BRACKETS_2024_MARRIED: list[tuple[Decimal, Decimal, Decimal]] = [
 # REVIEW DATE: 2026-03-04
 GA_FLAT_RATE_2025 = Decimal("0.0519")
 
-# SOURCE: Georgia DOR, HB 111, Tax Year 2026 — flat rate 5.19%
-# REVIEW DATE: 2026-03-04
-# COMPLIANCE REVIEW NEEDED: Verify 2026 flat rate with GA DOR publication
-GA_FLAT_RATE_2026 = Decimal("0.0519")
+# SOURCE: Georgia HB 111 (signed April 2025), GA Code §48-7-20
+# REVIEW DATE: 2026-03-06
+# COMPLIANCE REVIEW NEEDED: HB 1001 (passed House) would reduce to 4.99%.
+#   SB 476/477 also pending. Monitor Georgia General Assembly session.
+#   Update this rate when final legislation is signed.
+GA_FLAT_RATE_2026 = Decimal("0.0509")
 
 
 # ---------------------------------------------------------------------------

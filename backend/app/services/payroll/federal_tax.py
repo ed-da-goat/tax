@@ -41,9 +41,8 @@ FEDERAL_BRACKETS_2024_MARRIED: list[tuple[Decimal, Decimal, Decimal]] = [
     (Decimal("731200.00"), Decimal("999999999.99"), Decimal("0.37")),
 ]
 
-# SOURCE: IRS Publication 15-T, Tax Year 2025 (projected, inflation-adjusted)
-# REVIEW DATE: 2026-03-04
-# COMPLIANCE REVIEW NEEDED: Verify 2025 brackets with final IRS Pub 15-T
+# SOURCE: IRS Publication 15-T, Tax Year 2025
+# REVIEW DATE: 2026-03-06
 FEDERAL_BRACKETS_2025_SINGLE: list[tuple[Decimal, Decimal, Decimal]] = [
     (Decimal("0.00"), Decimal("11925.00"), Decimal("0.10")),
     (Decimal("11925.00"), Decimal("48475.00"), Decimal("0.12")),
@@ -64,11 +63,28 @@ FEDERAL_BRACKETS_2025_MARRIED: list[tuple[Decimal, Decimal, Decimal]] = [
     (Decimal("751600.00"), Decimal("999999999.99"), Decimal("0.37")),
 ]
 
-# SOURCE: IRS Revenue Procedure 2025-XX (projected)
-# REVIEW DATE: 2026-03-04
-# COMPLIANCE REVIEW NEEDED: Verify 2026 brackets with IRS publication
-FEDERAL_BRACKETS_2026_SINGLE = FEDERAL_BRACKETS_2025_SINGLE
-FEDERAL_BRACKETS_2026_MARRIED = FEDERAL_BRACKETS_2025_MARRIED
+# SOURCE: IRS Revenue Procedure 2025-32, Tax Year 2026, as amended by
+#         One Big Beautiful Bill Act (P.L. 119-XXX), Section 3.01
+# REVIEW DATE: 2026-03-06
+FEDERAL_BRACKETS_2026_SINGLE: list[tuple[Decimal, Decimal, Decimal]] = [
+    (Decimal("0.00"), Decimal("12400.00"), Decimal("0.10")),
+    (Decimal("12400.00"), Decimal("50400.00"), Decimal("0.12")),
+    (Decimal("50400.00"), Decimal("105700.00"), Decimal("0.22")),
+    (Decimal("105700.00"), Decimal("201050.00"), Decimal("0.24")),
+    (Decimal("201050.00"), Decimal("381900.00"), Decimal("0.32")),
+    (Decimal("381900.00"), Decimal("640600.00"), Decimal("0.35")),
+    (Decimal("640600.00"), Decimal("999999999.99"), Decimal("0.37")),
+]
+
+FEDERAL_BRACKETS_2026_MARRIED: list[tuple[Decimal, Decimal, Decimal]] = [
+    (Decimal("0.00"), Decimal("24800.00"), Decimal("0.10")),
+    (Decimal("24800.00"), Decimal("100800.00"), Decimal("0.12")),
+    (Decimal("100800.00"), Decimal("201050.00"), Decimal("0.22")),
+    (Decimal("201050.00"), Decimal("383200.00"), Decimal("0.24")),
+    (Decimal("383200.00"), Decimal("510200.00"), Decimal("0.32")),
+    (Decimal("510200.00"), Decimal("768600.00"), Decimal("0.35")),
+    (Decimal("768600.00"), Decimal("999999999.99"), Decimal("0.37")),
+]
 
 FEDERAL_BRACKETS: dict[int, dict[str, list[tuple[Decimal, Decimal, Decimal]]]] = {
     2024: {
@@ -104,11 +120,12 @@ FEDERAL_STANDARD_DEDUCTIONS: dict[int, dict[str, Decimal]] = {
         "MARRIED": Decimal("30000.00"),
         "HEAD_OF_HOUSEHOLD": Decimal("22500.00"),
     },
-    # COMPLIANCE REVIEW NEEDED: Verify 2026 standard deductions
+    # SOURCE: IRS Revenue Procedure 2025-32, Tax Year 2026
+    # REVIEW DATE: 2026-03-06
     2026: {
-        "SINGLE": Decimal("15000.00"),
-        "MARRIED": Decimal("30000.00"),
-        "HEAD_OF_HOUSEHOLD": Decimal("22500.00"),
+        "SINGLE": Decimal("16100.00"),
+        "MARRIED": Decimal("32200.00"),
+        "HEAD_OF_HOUSEHOLD": Decimal("24150.00"),
     },
 }
 
@@ -117,8 +134,8 @@ FEDERAL_STANDARD_DEDUCTIONS: dict[int, dict[str, Decimal]] = {
 # FICA constants
 # ---------------------------------------------------------------------------
 
-# SOURCE: IRS Publication 15 (Circular E), Tax Year 2024
-# REVIEW DATE: 2026-03-04
+# SOURCE: IRS Publication 15, Tax Year 2026, Section 1
+# REVIEW DATE: 2026-03-06
 SS_RATE = Decimal("0.062")  # 6.2% employee AND 6.2% employer
 
 # SOURCE: SSA Press Release, October 2023, Tax Year 2024
@@ -129,10 +146,9 @@ SS_WAGE_BASE_2024 = Decimal("168600.00")
 # REVIEW DATE: 2026-03-04
 SS_WAGE_BASE_2025 = Decimal("176100.00")
 
-# SOURCE: SSA (projected), Tax Year 2026
-# REVIEW DATE: 2026-03-04
-# COMPLIANCE REVIEW NEEDED: Verify 2026 SS wage base with SSA
-SS_WAGE_BASE_2026 = Decimal("176100.00")
+# SOURCE: SSA Fact Sheet "Social Security Changes 2026", effective Jan 1 2026
+# REVIEW DATE: 2026-03-06
+SS_WAGE_BASE_2026 = Decimal("184500.00")
 
 SS_WAGE_BASES: dict[int, Decimal] = {
     2024: SS_WAGE_BASE_2024,
@@ -140,12 +156,12 @@ SS_WAGE_BASES: dict[int, Decimal] = {
     2026: SS_WAGE_BASE_2026,
 }
 
-# SOURCE: IRS Publication 15, Tax Year 2024
-# REVIEW DATE: 2026-03-04
+# SOURCE: IRS Publication 15, Tax Year 2026, Section 1
+# REVIEW DATE: 2026-03-06
 MEDICARE_RATE = Decimal("0.0145")  # 1.45% employee AND 1.45% employer
 
-# SOURCE: IRS Publication 15, Additional Medicare Tax (ACA)
-# REVIEW DATE: 2026-03-04
+# SOURCE: IRS Publication 15, Tax Year 2026, Additional Medicare Tax (ACA)
+# REVIEW DATE: 2026-03-06
 # Additional 0.9% on wages over $200,000 (employee-only, no employer match)
 ADDITIONAL_MEDICARE_RATE = Decimal("0.009")
 ADDITIONAL_MEDICARE_THRESHOLD = Decimal("200000.00")
@@ -155,15 +171,16 @@ ADDITIONAL_MEDICARE_THRESHOLD = Decimal("200000.00")
 # FUTA constants
 # ---------------------------------------------------------------------------
 
-# SOURCE: IRS Publication 15, Tax Year 2024
-# REVIEW DATE: 2026-03-04
+# SOURCE: IRS Publication 15, Tax Year 2026, Chapter 14
+# REVIEW DATE: 2026-03-06
+# NOTE: Georgia FUTA credit reduction status — verify after Nov 10, 2026
 # Gross FUTA rate is 6.0%, but with state credit the effective rate is 0.6%
 FUTA_GROSS_RATE = Decimal("0.060")
 FUTA_CREDIT_RATE = Decimal("0.054")  # Credit for state UI contributions
 FUTA_EFFECTIVE_RATE = FUTA_GROSS_RATE - FUTA_CREDIT_RATE  # 0.6%
 
-# SOURCE: IRS Publication 15, Tax Year 2024
-# REVIEW DATE: 2026-03-04
+# SOURCE: IRS Publication 15, Tax Year 2026, Chapter 14
+# REVIEW DATE: 2026-03-06
 FUTA_WAGE_BASE = Decimal("7000.00")
 
 

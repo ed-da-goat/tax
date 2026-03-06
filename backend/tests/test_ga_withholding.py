@@ -151,7 +151,7 @@ class TestGeorgiaWithholding2025FlatRate:
         assert result.annual_tax == expected_annual
 
     def test_flat_rate_2026(self):
-        """2026 uses flat rate of 5.19%."""
+        """2026 uses flat rate of 5.09% with $12,000 standard deduction."""
         result = GeorgiaWithholdingCalculator.calculate(
             gross_pay_per_period=Decimal("2000.00"),
             filing_status="SINGLE",
@@ -159,7 +159,8 @@ class TestGeorgiaWithholding2025FlatRate:
             pay_periods=26,
             tax_year=2026,
         )
-        expected_annual = (Decimal("46600") * GA_FLAT_RATE_2026).quantize(Decimal("0.01"))
+        # Taxable = $52000 - $12000 (TY2026 standard deduction) = $40000
+        expected_annual = (Decimal("40000") * GA_FLAT_RATE_2026).quantize(Decimal("0.01"))
         assert result.annual_tax == expected_annual
 
     def test_flat_rate_lower_than_2024_brackets(self):

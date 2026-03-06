@@ -18,11 +18,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.schemas.w2 import W2Data, W2SummaryResponse
-
-# SOURCE: SSA, Tax Year 2026 — Social Security wage base
-# REVIEW DATE: 2026-03-04
-# COMPLIANCE REVIEW NEEDED: Verify 2026 SS wage base when SSA publishes
-SS_WAGE_BASE_2026 = Decimal("168600.00")
+from app.services.payroll.federal_tax import SS_WAGE_BASES
 
 
 def _format_currency(amount: Decimal) -> str:
@@ -97,7 +93,8 @@ class W2GeneratorService:
 
         for row in rows:
             gross = row.total_gross
-            ss_wages = min(gross, SS_WAGE_BASE_2026)
+            ss_base = SS_WAGE_BASES.get(tax_year, SS_WAGE_BASES[max(SS_WAGE_BASES.keys())])
+            ss_wages = min(gross, ss_base)
 
             w2 = W2Data(
                 employee_id=row.employee_id,

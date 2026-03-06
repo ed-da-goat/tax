@@ -29,14 +29,13 @@ GA_SUTA_NEW_EMPLOYER_RATE = Decimal("0.027")
 # Taxable wage base for Georgia SUTA: first $9,500 of wages per employee per year
 GA_SUTA_WAGE_BASE_2024 = Decimal("9500.00")
 
-# SOURCE: Georgia DOL, Employer's Guide to Unemployment Insurance Tax, 2025
-# REVIEW DATE: 2026-03-04
-# COMPLIANCE REVIEW NEEDED: Verify 2025 wage base with GA DOL
+# SOURCE: Georgia DOL, Employer Tax Rate Information, Tax Year 2025
+# REVIEW DATE: 2026-03-06
 GA_SUTA_WAGE_BASE_2025 = Decimal("9500.00")
 
-# SOURCE: Georgia DOL, Employer's Guide to Unemployment Insurance Tax, 2026
-# REVIEW DATE: 2026-03-04
-# COMPLIANCE REVIEW NEEDED: Verify 2026 wage base with GA DOL
+# SOURCE: Georgia DOL, Employer Tax Rate Information, Tax Year 2026
+# REVIEW DATE: 2026-03-06
+# NOTE: New employer default rate. Experienced rates vary per client (0.04%-8.1%).
 GA_SUTA_WAGE_BASE_2026 = Decimal("9500.00")
 
 WAGE_BASES: dict[int, Decimal] = {

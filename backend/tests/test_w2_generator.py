@@ -7,8 +7,8 @@ from decimal import Decimal
 import pytest
 
 from app.schemas.w2 import W2Data, W2SummaryResponse
+from app.services.payroll.federal_tax import SS_WAGE_BASES
 from app.services.payroll.w2_generator import (
-    SS_WAGE_BASE_2026,
     W2GeneratorService,
     _build_w2_html,
     _format_currency,
@@ -104,12 +104,12 @@ class TestW2SSWageBase:
     def test_ss_wage_base_caps_high_earner(self):
         """Verify box3 SS wages are capped at SS wage base."""
         gross = Decimal("200000.00")
-        capped = min(gross, SS_WAGE_BASE_2026)
-        assert capped == SS_WAGE_BASE_2026
+        capped = min(gross, SS_WAGE_BASES[2026])
+        assert capped == SS_WAGE_BASES[2026]
 
     def test_ss_wage_base_no_cap_low_earner(self):
         gross = Decimal("50000.00")
-        capped = min(gross, SS_WAGE_BASE_2026)
+        capped = min(gross, SS_WAGE_BASES[2026])
         assert capped == gross
 
 
