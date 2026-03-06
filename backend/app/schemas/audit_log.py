@@ -7,9 +7,10 @@ because the audit_log table is append-only and written by DB triggers.
 
 from datetime import datetime
 from enum import Enum
+from ipaddress import IPv4Address, IPv6Address
 from uuid import UUID
 
-from pydantic import Field
+from pydantic import Field, field_serializer
 
 from app.schemas import BaseSchema
 
@@ -32,8 +33,12 @@ class AuditLogEntry(BaseSchema):
     old_values: dict | None = None
     new_values: dict | None = None
     user_id: UUID | None = None
-    ip_address: str | None = None
+    ip_address: IPv4Address | IPv6Address | str | None = None
     created_at: datetime
+
+    @field_serializer("ip_address")
+    def serialize_ip(self, v: IPv4Address | IPv6Address | str | None) -> str | None:
+        return str(v) if v is not None else None
 
 
 class AuditLogList(BaseSchema):

@@ -7,6 +7,8 @@ All database access in the application flows through this module.
 
 from collections.abc import AsyncGenerator
 
+from fastapi import Request
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
@@ -39,9 +41,13 @@ async_session_factory = async_sessionmaker(
 # ---------------------------------------------------------------------------
 # FastAPI dependency
 # ---------------------------------------------------------------------------
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
+async def get_db(request: Request = None) -> AsyncGenerator[AsyncSession, None]:
     """
     Yield an async database session for a single request.
+
+    Sets PostgreSQL session variables `app.current_user_id` and
+    `app.current_ip` so the fn_audit_log() trigger can record
+    who made the change.
 
     The session is automatically closed when the request completes.
     Callers should use `async with session.begin():` for transactions
@@ -49,6 +55,22 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """
     async with async_session_factory() as session:
         try:
+            # Propagate audit context from middleware to PostgreSQL session.
+            # SET commands don't support bind parameters in asyncpg, so we
+            # use set_config() which is a regular SQL function.
+            if request is not None:
+                user_id = getattr(request.state, "audit_user_id", None)
+                client_ip = getattr(request.state, "audit_client_ip", None)
+                if user_id:
+                    await session.execute(
+                        text("SELECT set_config('app.current_user_id', :uid, true)"),
+                        {"uid": str(user_id)},
+                    )
+                if client_ip and client_ip != "unknown":
+                    await session.execute(
+                        text("SELECT set_config('app.current_ip', :ip, true)"),
+                        {"ip": str(client_ip)},
+                    )
             yield session
         finally:
             await session.close()

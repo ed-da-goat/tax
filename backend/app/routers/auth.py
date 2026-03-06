@@ -507,10 +507,15 @@ async def disable_2fa(
 # ---------------------------------------------------------------------------
 # Forgot Password (E2)
 # ---------------------------------------------------------------------------
+class ForgotPasswordRequest(BaseModel):
+    """POST /api/v1/auth/forgot-password request body."""
+    email: str
+
+
 @router.post("/forgot-password", summary="Request password reset")
 @limiter.limit("5/minute")
 async def forgot_password(
-    email: str,
+    data: ForgotPasswordRequest,
     request: Request,
     db: AsyncSession = Depends(get_db),
 ) -> dict:
@@ -518,6 +523,7 @@ async def forgot_password(
     from app.services.password_reset import request_password_reset
     from app.services.email import send_email
 
+    email = data.email
     result = await request_password_reset(db, email)
 
     # If token was generated and email is configured, send it

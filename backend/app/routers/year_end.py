@@ -58,7 +58,7 @@ async def close_year(
 ) -> dict:
     verify_role(user, "CPA_OWNER")
     try:
-        result = await YearEndService.close_year(db, client_id, fiscal_year, user.id)
+        result = await YearEndService.close_year(db, client_id, fiscal_year, user.user_id)
         await db.commit()
         return result
     except ValueError as e:
@@ -77,7 +77,7 @@ async def reopen_year(
 ) -> dict:
     verify_role(user, "CPA_OWNER")
     try:
-        result = await YearEndService.reopen_year(db, client_id, fiscal_year, user.id)
+        result = await YearEndService.reopen_year(db, client_id, fiscal_year, user.user_id)
         await db.commit()
         return result
     except ValueError as e:

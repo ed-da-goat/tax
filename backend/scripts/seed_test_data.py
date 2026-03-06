@@ -1285,8 +1285,16 @@ async def seed_payroll(
 
     now_utc = datetime.now(timezone.utc)
 
+    # Wage base caps (annual YTD thresholds)
+    SUTA_WAGE_BASE = Decimal("9500")
+    FUTA_WAGE_BASE = Decimal("7000")
+    SS_WAGE_BASE = Decimal("168600")
+
     for client_id, runs in runs_spec.items():
         employees = emp_map[client_id]
+        # Track YTD gross per employee for wage base cap calculations
+        ytd_gross: dict[uuid.UUID, Decimal] = {eid: Decimal("0") for eid in employees}
+
         for ps, pe, pd, status in runs:
             run_id = uuid.uuid4()
             session.add(PayrollRun(
@@ -1323,14 +1331,41 @@ async def seed_payroll(
                         gross = emp.pay_rate / 12  # Monthly
 
                 gross = round(gross, 2)
+                prev_ytd = ytd_gross[emp_id]
+                new_ytd = prev_ytd + gross
+
                 # Calculate approximate withholdings
                 fed_wh = round(gross * Decimal("0.12"), 2)
                 state_wh = round(gross * Decimal("0.05"), 2)
-                ss = round(gross * Decimal("0.062"), 2)
+
+                # SS: only on wages up to SS_WAGE_BASE
+                if prev_ytd >= SS_WAGE_BASE:
+                    ss = Decimal("0.00")
+                elif new_ytd > SS_WAGE_BASE:
+                    ss = round((SS_WAGE_BASE - prev_ytd) * Decimal("0.062"), 2)
+                else:
+                    ss = round(gross * Decimal("0.062"), 2)
+
                 med = round(gross * Decimal("0.0145"), 2)
-                suta = round(gross * Decimal("0.027"), 2) if gross < Decimal("9500") else Decimal("0.00")
-                futa = round(gross * Decimal("0.006"), 2) if gross < Decimal("7000") else Decimal("0.00")
+
+                # SUTA: only on wages up to SUTA_WAGE_BASE per employee per year
+                if prev_ytd >= SUTA_WAGE_BASE:
+                    suta = Decimal("0.00")
+                elif new_ytd > SUTA_WAGE_BASE:
+                    suta = round((SUTA_WAGE_BASE - prev_ytd) * Decimal("0.027"), 2)
+                else:
+                    suta = round(gross * Decimal("0.027"), 2)
+
+                # FUTA: only on wages up to FUTA_WAGE_BASE per employee per year
+                if prev_ytd >= FUTA_WAGE_BASE:
+                    futa = Decimal("0.00")
+                elif new_ytd > FUTA_WAGE_BASE:
+                    futa = round((FUTA_WAGE_BASE - prev_ytd) * Decimal("0.006"), 2)
+                else:
+                    futa = round(gross * Decimal("0.006"), 2)
+
                 net = gross - fed_wh - state_wh - ss - med
+                ytd_gross[emp_id] = new_ytd
 
                 session.add(PayrollItem(
                     payroll_run_id=run_id,

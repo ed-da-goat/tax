@@ -48,7 +48,8 @@ async def test_forgot_password_success(client: AsyncClient):
             "expires_minutes": 30,
         }
         response = await client.post(
-            "/api/v1/auth/forgot-password?email=user@example.com",
+            "/api/v1/auth/forgot-password",
+            json={"email": "user@example.com"},
         )
     assert response.status_code == 200
     data = response.json()
@@ -72,7 +73,8 @@ async def test_forgot_password_nonexistent_email(client: AsyncClient):
             "expires_minutes": 30,
         }
         response = await client.post(
-            "/api/v1/auth/forgot-password?email=nobody@example.com",
+            "/api/v1/auth/forgot-password",
+            json={"email": "nobody@example.com"},
         )
     assert response.status_code == 200
     # Email should NOT be sent when token is None
@@ -96,7 +98,8 @@ async def test_forgot_password_sends_email_with_reset_url(client: AsyncClient):
             "expires_minutes": 30,
         }
         await client.post(
-            "/api/v1/auth/forgot-password?email=user@example.com",
+            "/api/v1/auth/forgot-password",
+            json={"email": "user@example.com"},
         )
     mock_email.assert_called_once()
     call_kwargs = mock_email.call_args[1]

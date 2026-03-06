@@ -12,11 +12,13 @@ Compliance (CLAUDE.md):
 import uuid
 from datetime import date
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import CurrentUser, require_role, verify_role
 from app.database import get_db
+from app.models.client import Client
 from fastapi.responses import Response
 
 from app.schemas.form_1099 import Form1099NECSummaryResponse
@@ -47,6 +49,40 @@ from app.services.tax_exports import (
 from app.services.tax_exports_1099 import Form1099NECService
 
 router = APIRouter()
+
+
+# Entity type required by each form
+FORM_ENTITY_TYPES: dict[str, list[str]] = {
+    "form-500": ["SOLE_PROP"],
+    "form-600": ["C_CORP"],
+    "schedule-c": ["SOLE_PROP"],
+    "form-1120s": ["S_CORP"],
+    "form-1120": ["C_CORP"],
+    "form-1065": ["PARTNERSHIP"],
+}
+
+
+async def _validate_entity_type(
+    db: AsyncSession, client_id: uuid.UUID, form_name: str,
+) -> None:
+    """Raise 400 if client entity type doesn't match the form requirements."""
+    allowed = FORM_ENTITY_TYPES.get(form_name)
+    if allowed is None:
+        return
+    result = await db.execute(
+        select(Client.entity_type).where(
+            Client.id == client_id, Client.deleted_at.is_(None)
+        )
+    )
+    entity_type = result.scalar_one_or_none()
+    if entity_type is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Client not found")
+    if entity_type not in allowed:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"{form_name} requires entity type {', '.join(allowed)}, "
+                   f"but client is {entity_type}",
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -89,6 +125,7 @@ async def get_form_500(
 ) -> Form500Data:
     """Generate Georgia Form 500 data. CPA_OWNER only."""
     verify_role(user, "CPA_OWNER")
+    await _validate_entity_type(db, client_id, "form-500")
     return await Form500Service.generate(db, client_id, tax_year)
 
 
@@ -110,6 +147,7 @@ async def get_form_600(
 ) -> Form600Data:
     """Generate Georgia Form 600 data. CPA_OWNER only."""
     verify_role(user, "CPA_OWNER")
+    await _validate_entity_type(db, client_id, "form-600")
     return await Form600Service.generate(db, client_id, tax_year)
 
 
@@ -154,6 +192,7 @@ async def get_schedule_c(
 ) -> ScheduleCData:
     """Generate Federal Schedule C data. CPA_OWNER only."""
     verify_role(user, "CPA_OWNER")
+    await _validate_entity_type(db, client_id, "schedule-c")
     return await ScheduleCService.generate(db, client_id, tax_year)
 
 
@@ -175,6 +214,7 @@ async def get_form_1120s(
 ) -> Form1120SData:
     """Generate Federal Form 1120-S data. CPA_OWNER only."""
     verify_role(user, "CPA_OWNER")
+    await _validate_entity_type(db, client_id, "form-1120s")
     return await Form1120SService.generate(db, client_id, tax_year)
 
 
@@ -196,6 +236,7 @@ async def get_form_1120(
 ) -> Form1120Data:
     """Generate Federal Form 1120 data. CPA_OWNER only."""
     verify_role(user, "CPA_OWNER")
+    await _validate_entity_type(db, client_id, "form-1120")
     return await Form1120Service.generate(db, client_id, tax_year)
 
 
@@ -217,6 +258,7 @@ async def get_form_1065(
 ) -> Form1065Data:
     """Generate Federal Form 1065 data. CPA_OWNER only."""
     verify_role(user, "CPA_OWNER")
+    await _validate_entity_type(db, client_id, "form-1065")
     return await Form1065Service.generate(db, client_id, tax_year)
 
 

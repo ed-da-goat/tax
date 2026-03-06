@@ -49,13 +49,18 @@ class AuditMiddleware(BaseHTTPMiddleware):
         client_ip = request.client.host if request.client else "unknown"
 
         # Extract user_id from JWT if present (best-effort, no auth enforcement)
+        # Check cookie first (browser clients), then Authorization header (API clients)
         user_id: str | None = None
-        auth_header = request.headers.get("authorization", "")
-        if auth_header.startswith("Bearer "):
+        raw_token = request.cookies.get("access_token")
+        if not raw_token:
+            auth_header = request.headers.get("authorization", "")
+            if auth_header.startswith("Bearer "):
+                raw_token = auth_header.removeprefix("Bearer ").strip()
+        if raw_token:
             try:
                 from app.auth.jwt import verify_token
 
-                payload = verify_token(auth_header.removeprefix("Bearer ").strip())
+                payload = verify_token(raw_token)
                 user_id = payload.get("sub")
             except Exception:
                 # Token may be invalid; that's fine for audit purposes.

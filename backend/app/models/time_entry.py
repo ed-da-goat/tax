@@ -6,7 +6,7 @@ Tables: time_entries, staff_rates, timer_sessions
 
 import enum
 import uuid
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from decimal import Decimal
 
 from sqlalchemy import (

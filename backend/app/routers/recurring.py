@@ -70,7 +70,7 @@ async def create_template(
 ) -> dict:
     try:
         result = await RecurringService.create_template(
-            db, client_id, user.id, body.model_dump(),
+            db, client_id, user.user_id, body.model_dump(),
         )
         await db.commit()
         return result
@@ -131,6 +131,6 @@ async def generate_due(
     user: CurrentUser = Depends(require_role("CPA_OWNER")),
 ) -> dict:
     target_date = date.fromisoformat(as_of) if as_of else None
-    result = await RecurringService.generate_due(db, as_of=target_date, user_id=user.id)
+    result = await RecurringService.generate_due(db, as_of=target_date, user_id=user.user_id)
     await db.commit()
     return result

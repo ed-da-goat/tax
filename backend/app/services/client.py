@@ -13,7 +13,7 @@ All queries filter `deleted_at IS NULL` by default.
 from datetime import datetime, timezone
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import CurrentUser, verify_role
@@ -79,6 +79,7 @@ class ClientService:
         limit: int = 50,
         entity_type: EntityType | None = None,
         is_active: bool | None = None,
+        search: str | None = None,
     ) -> tuple[list[Client], int]:
         """
         List clients with optional filters, pagination.
@@ -94,6 +95,14 @@ class ClientService:
             base = base.where(Client.entity_type == entity_type)
         if is_active is not None:
             base = base.where(Client.is_active == is_active)
+        if search:
+            pattern = f"%{search}%"
+            base = base.where(
+                or_(
+                    Client.name.ilike(pattern),
+                    Client.email.ilike(pattern),
+                )
+            )
 
         # Total count
         count_stmt = select(func.count()).select_from(base.subquery())

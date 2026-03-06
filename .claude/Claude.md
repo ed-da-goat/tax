@@ -16,7 +16,7 @@ FILE: CLAUDE.md
 - Purpose: Replace QuickBooks Online subscription entirely
 
 ## TECH STACK
-- Frontend: React 18.3 + Vite 6 (fast local dev, no build server needed)
+- Frontend: React 19.2 + Vite 6 (fast local dev, no build server needed)
 - Backend: Python 3.14.2 + FastAPI (readable, strong accounting libraries)
 - Database: PostgreSQL (local instance, ACID compliant for financials)
 - Auth: JWT with role-based access control + optional TOTP 2FA
@@ -273,8 +273,8 @@ Examples:
 - Python: 3.14.2 (venv at backend/.venv)
 - PostgreSQL: local, role 'postgres', database 'ga_cpa'
 - DB connection: see backend/.env (password changed from default)
-- Schema: 59 tables (incl. password_reset_tokens), 25 audit triggers
-- DB migrations: 003 (checks), 004 (audit PII), 005 (recurring), 006 (reset tokens)
+- Schema: 59 tables (incl. password_reset_tokens), 25 audit triggers, 38 hard-delete triggers
+- DB migrations: 003 (checks), 004 (audit PII), 005 (recurring), 006 (reset tokens), 007 (Phase 9 hard-delete triggers)
 - Default user: edward@755mortgage.com / admin123 (CPA_OWNER)
 
 ## KEY FILE PATHS
@@ -536,7 +536,8 @@ Remaining work:
 6. Deferred features: Plaid bank feeds (paid API), document OCR (Tesseract)
 
 ## OPEN COMPLIANCE FLAGS
-11 open issues (#1-#11) — all TY2026 rate verification.
+11 open compliance issues (#1-#11) — all TY2026 rate verification.
+6 resolved bug issues (#18-#23) — backend audit fixes.
 See OPEN_ISSUES.md for details.
 
 ## PHASE 8 — FEATURE GAP DETAILS

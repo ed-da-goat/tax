@@ -55,12 +55,14 @@ async def list_clients(
     limit: int = Query(50, ge=1, le=200),
     entity_type: EntityType | None = Query(None),
     is_active: bool | None = Query(None),
+    search: str | None = Query(None, max_length=200),
     db: AsyncSession = Depends(get_db),
     current_user: CurrentUser = Depends(get_current_user),
 ) -> ClientList:
     """List all active clients with optional filters. Both roles."""
     clients, total = await ClientService.list_clients(
-        db, skip=skip, limit=limit, entity_type=entity_type, is_active=is_active
+        db, skip=skip, limit=limit, entity_type=entity_type,
+        is_active=is_active, search=search,
     )
     return ClientList(
         items=[ClientResponse.model_validate(c) for c in clients],

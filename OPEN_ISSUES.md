@@ -153,3 +153,51 @@ Track all blockers, compliance questions, and conflicts here.
 - **Status:** OPEN
 - **Description:** QBO silently truncates CSV exports at approximately 10,000 rows for Transaction Detail and Invoice List reports. For a firm with 26-50 clients and multiple years of history, exports will likely exceed this limit. The CPA must export in date-range chunks (by quarter or year) and the parser must support merging chunked exports. CPA_OWNER should test with an "All Dates" export first and compare row counts against QBO dashboard totals. See docs/migration/qbo_known_issues.md Section 3.
 - **Resolution:** (pending)
+
+### #18 — Backend audit: 3 critical bugs fixed (user.id, timezone, forgot-password)
+- **Label:** BUG
+- **Module:** C1/E4 (year_end), C3/E6 (recurring), E15 (time_entry), E2/E12 (auth)
+- **Assigned to:** Backend Fix Agent
+- **Status:** RESOLVED
+- **Description:** Backend audit found 3 critical runtime blockers: (1) year_end.py and recurring.py used `user.id` instead of `user.user_id` on CurrentUser dataclass — AttributeError on every call. (2) time_entry.py imported `datetime` but not `timezone`, causing NameError when TimerSession model loaded. (3) forgot-password endpoint accepted email as query parameter instead of JSON POST body, contradicting security hardening (E12). All 3 fixed and verified with 900 passing tests.
+- **Resolution:** Fixed in backend audit session. See backend/BACKEND_AUDIT_REPORT.md.
+
+### #19 — Backend audit: hard-delete triggers added to 18 Phase 9 tables
+- **Label:** BUG
+- **Module:** Phase 9 (E1-E21)
+- **Assigned to:** Backend Fix Agent
+- **Status:** RESOLVED
+- **Description:** 18 Phase 9 tables had `deleted_at` (soft-delete) columns but were missing the `fn_prevent_hard_delete` trigger. A rogue DELETE would permanently destroy records with no audit trail. Migration 007 adds triggers to: budgets, contacts, direct_deposit_batches, due_dates, employee_bank_accounts, engagements, fixed_assets, messages, portal_users, questionnaires, recurring_template_lines, recurring_templates, service_invoices, staff_rates, tax_filing_submissions, time_entries, workflow_tasks, workflows. All 38 soft-deletable tables now have hard-delete protection.
+- **Resolution:** Fixed via migration 007_phase9_hard_delete_triggers.sql.
+
+### #20 — Backend audit: seed data SUTA/FUTA wage base caps fixed
+- **Label:** BUG
+- **Module:** P3/P4 (payroll seed data)
+- **Assigned to:** Backend Fix Agent
+- **Status:** RESOLVED
+- **Description:** Seed data script compared per-period gross pay against annual wage bases ($9,500 SUTA, $7,000 FUTA), making any employee earning >$9,500/month pay zero SUTA/FUTA. Fixed to track YTD gross per employee and apply SUTA/FUTA only on the portion of wages below the cap. Also added SS wage base cap ($168,600).
+- **Resolution:** Fixed in seed_test_data.py. Re-seed with --reset to apply.
+
+### #21 — Backend audit: client search filter implemented
+- **Label:** BUG
+- **Module:** F4 (client management)
+- **Assigned to:** Backend Fix Agent
+- **Status:** RESOLVED
+- **Description:** GET /api/v1/clients accepted a `search` query parameter in the frontend but the backend ignored it. Added `search` param with ILIKE matching on client name and email.
+- **Resolution:** Fixed in clients router and ClientService.list_clients().
+
+### #22 — Backend audit: entity type validation on tax export endpoints
+- **Label:** BUG
+- **Module:** X2-X8 (tax exports)
+- **Assigned to:** Backend Fix Agent
+- **Status:** RESOLVED
+- **Description:** Tax export endpoints (Form 500, 600, Schedule C, 1120-S, 1120, 1065) did not validate that the client's entity type matches the form. E.g., generating Form 1120-S for a sole proprietor would produce garbage data. Added `_validate_entity_type()` guard that returns HTTP 400 with a clear message.
+- **Resolution:** Fixed in tax_exports router.
+
+### #23 — Backend audit: audit log NULL user_id fixed
+- **Label:** BUG
+- **Module:** O1 (audit trail)
+- **Assigned to:** Backend Fix Agent
+- **Status:** RESOLVED
+- **Description:** The fn_audit_log() PostgreSQL trigger reads `app.current_user_id` from session config, but the application never set this variable. All 1564 audit log entries had NULL user_id. Fixed by: (1) updating AuditMiddleware to also check cookies (not just Authorization header), (2) modifying get_db() to call `set_config('app.current_user_id', uid, true)` using the request state from middleware. Verified end-to-end: authenticated requests now write the correct user_id to audit_log.
+- **Resolution:** Fixed in database.py and middleware/audit.py.
