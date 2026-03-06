@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import useAuth from '../hooks/useAuth';
+import useApi from '../hooks/useApi';
 import RoleGate from './RoleGate';
+import Modal from './Modal';
 import { useApiQuery } from '../hooks/useApiQuery';
 
 /* ---- SVG Nav Icons (18×18, stroke-based) ---- */
@@ -149,6 +151,7 @@ const NAV_SECTIONS = [
       { to: '/reconciliation', label: 'Bank Recon', icon: 'bank' },
       { to: '/service-billing', label: 'Billing', icon: 'billing' },
       { to: '/budgets', label: 'Budgets', icon: 'budget' },
+      { to: '/recurring', label: 'Recurring', icon: 'workflow' },
       { to: '/fixed-assets', label: 'Fixed Assets', icon: 'assets' },
       { to: '/documents', label: 'Documents', icon: 'documents' },
     ],
@@ -182,6 +185,7 @@ const NAV_SECTIONS = [
     label: 'System',
     items: [
       { to: '/audit-trail', label: 'Audit Trail', icon: 'documents' },
+      { to: '/year-end', label: 'Year-End Close', icon: 'tax', cpaOnly: true },
       { to: '/admin', label: 'System Admin', icon: 'dashboard', cpaOnly: true },
     ],
   },
@@ -190,10 +194,10 @@ const NAV_SECTIONS = [
 /* ---- Search result type → route mapping ---- */
 const SEARCH_TYPE_ROUTES = {
   client: (r) => `/clients/${r.id}`,
-  vendor: (r) => `/clients/${r.client_id}`,
+  vendor: (r) => `/clients/${r.client_id}/ap`,
   employee: (r) => `/employees`,
-  invoice: (r) => `/clients/${r.client_id}`,
-  bill: (r) => `/clients/${r.client_id}`,
+  invoice: (r) => `/clients/${r.client_id}/ar`,
+  bill: (r) => `/clients/${r.client_id}/ap`,
 };
 
 const SEARCH_TYPE_LABELS = {
@@ -225,6 +229,37 @@ export default function Layout() {
   const [selectedIdx, setSelectedIdx] = useState(0);
   const searchInputRef = useRef(null);
   const searchTimerRef = useRef(null);
+
+  // --- Change Password ---
+  const apiInstance = useApi();
+  const [pwModalOpen, setPwModalOpen] = useState(false);
+  const [pwForm, setPwForm] = useState({ current_password: '', new_password: '', confirm: '' });
+  const [pwError, setPwError] = useState('');
+  const [pwSaving, setPwSaving] = useState(false);
+
+  const handleChangePassword = async () => {
+    setPwError('');
+    if (pwForm.new_password !== pwForm.confirm) {
+      setPwError('New passwords do not match');
+      return;
+    }
+    if (pwForm.new_password.length < 8) {
+      setPwError('Password must be at least 8 characters');
+      return;
+    }
+    setPwSaving(true);
+    try {
+      await apiInstance.post('/api/v1/auth/change-password', {
+        current_password: pwForm.current_password,
+        new_password: pwForm.new_password,
+      });
+      setPwModalOpen(false);
+      setPwForm({ current_password: '', new_password: '', confirm: '' });
+    } catch (e) {
+      setPwError(e.response?.data?.detail || 'Failed to change password');
+    }
+    setPwSaving(false);
+  };
 
   // Cmd+K / Ctrl+K to open
   useEffect(() => {
@@ -428,6 +463,9 @@ export default function Layout() {
                 {user?.role === 'CPA_OWNER' ? 'CPA Owner' : 'Associate'}
               </span>
             </span>
+            <button className="btn btn--small btn--outline" onClick={() => setPwModalOpen(true)}>
+              Password
+            </button>
             <button className="btn btn--small btn--outline" onClick={handleLogout}>
               Log out
             </button>
@@ -438,6 +476,55 @@ export default function Layout() {
           <Outlet />
         </main>
       </div>
+
+      {/* Change Password Modal */}
+      <Modal isOpen={pwModalOpen} title="Change Password" onClose={() => !pwSaving && setPwModalOpen(false)}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {pwError && <div className="alert alert--error">{pwError}</div>}
+          <label style={{ fontSize: 13, fontWeight: 500 }}>
+            Current Password
+            <input
+              className="form-input"
+              type="password"
+              value={pwForm.current_password}
+              onChange={(e) => setPwForm({ ...pwForm, current_password: e.target.value })}
+              style={{ marginTop: 4 }}
+            />
+          </label>
+          <label style={{ fontSize: 13, fontWeight: 500 }}>
+            New Password
+            <input
+              className="form-input"
+              type="password"
+              value={pwForm.new_password}
+              onChange={(e) => setPwForm({ ...pwForm, new_password: e.target.value })}
+              style={{ marginTop: 4 }}
+            />
+          </label>
+          <label style={{ fontSize: 13, fontWeight: 500 }}>
+            Confirm New Password
+            <input
+              className="form-input"
+              type="password"
+              value={pwForm.confirm}
+              onChange={(e) => setPwForm({ ...pwForm, confirm: e.target.value })}
+              style={{ marginTop: 4 }}
+            />
+          </label>
+        </div>
+        <div className="modal-actions" style={{ marginTop: 16 }}>
+          <button className="btn btn--outline" onClick={() => setPwModalOpen(false)} disabled={pwSaving}>
+            Cancel
+          </button>
+          <button
+            className={`btn btn--primary${pwSaving ? ' btn--loading' : ''}`}
+            onClick={handleChangePassword}
+            disabled={pwSaving}
+          >
+            Change Password
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }

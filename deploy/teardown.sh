@@ -13,6 +13,12 @@ launchctl bootout "gui/$(id -u)/com.gacpa.backend" 2>/dev/null && echo "  Backen
 # Stop backup scheduler
 launchctl bootout "gui/$(id -u)/com.gacpa.backup" 2>/dev/null && echo "  Backup scheduler stopped" || echo "  Backup scheduler not running"
 
+# Stop DB maintenance
+launchctl bootout "gui/$(id -u)/com.gacpa.dbmaint" 2>/dev/null && echo "  DB maintenance stopped" || echo "  DB maintenance not running"
+
+# Stop log rotation
+launchctl bootout "gui/$(id -u)/com.gacpa.logrotate" 2>/dev/null && echo "  Log rotation stopped" || echo "  Log rotation not running"
+
 # Stop nginx
 brew services stop nginx 2>/dev/null && echo "  nginx stopped" || echo "  nginx not running"
 
@@ -26,6 +32,8 @@ fi
 # Remove launchd plists
 rm -f "$HOME/Library/LaunchAgents/com.gacpa.backend.plist"
 rm -f "$HOME/Library/LaunchAgents/com.gacpa.backup.plist"
+rm -f "$HOME/Library/LaunchAgents/com.gacpa.dbmaint.plist"
+rm -f "$HOME/Library/LaunchAgents/com.gacpa.logrotate.plist"
 echo "  LaunchAgent plists removed"
 
 echo ""

@@ -27,6 +27,8 @@ import FirmAnalytics from './pages/FirmAnalytics';
 import DueDates from './pages/DueDates';
 import AuditTrail from './pages/AuditTrail';
 import SystemAdmin from './pages/SystemAdmin';
+import RecurringTransactions from './pages/RecurringTransactions';
+import YearEndClose from './pages/YearEndClose';
 import ResetPassword from './pages/ResetPassword';
 
 export default function App() {
@@ -66,6 +68,8 @@ export default function App() {
         <Route path="/budgets" element={<Budgets />} />
         <Route path="/analytics" element={<FirmAnalytics />} />
         <Route path="/due-dates" element={<DueDates />} />
+        <Route path="/recurring" element={<RecurringTransactions />} />
+        <Route path="/year-end" element={<YearEndClose />} />
         <Route path="/audit-trail" element={<AuditTrail />} />
         <Route path="/admin" element={<SystemAdmin />} />
       </Route>

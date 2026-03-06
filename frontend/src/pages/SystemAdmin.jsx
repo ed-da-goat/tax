@@ -4,11 +4,13 @@ import RoleGate from '../components/RoleGate';
 import Tabs from '../components/Tabs';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
+import { FormField } from '../components/FormField';
 import Toast from '../components/Toast';
 
 const TABS = [
   { key: 'health', label: 'System Health' },
   { key: 'backups', label: 'Backup Management' },
+  { key: 'users', label: 'Users' },
 ];
 
 function formatBytes(bytes) {
@@ -72,6 +74,15 @@ export default function SystemAdmin() {
   const [verifyResults, setVerifyResults] = useState({});
   const [verifying, setVerifying] = useState({});
 
+  // Users state
+  const [users, setUsers] = useState([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [usersError, setUsersError] = useState('');
+  const [userModalOpen, setUserModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+  const [userForm, setUserForm] = useState({ email: '', full_name: '', role: 'ASSOCIATE', password: '' });
+  const [userSaving, setUserSaving] = useState(false);
+
   const fetchHealth = async () => {
     setHealthLoading(true);
     setHealthError('');
@@ -97,6 +108,59 @@ export default function SystemAdmin() {
     setBackupsLoading(false);
   };
 
+  const fetchUsers = async () => {
+    setUsersLoading(true);
+    setUsersError('');
+    try {
+      const res = await api.get('/api/v1/auth/users');
+      setUsers(res.data);
+    } catch (e) {
+      setUsersError(e.response?.data?.detail || 'Failed to load users');
+    }
+    setUsersLoading(false);
+  };
+
+  const openCreateUser = () => {
+    setEditingUser(null);
+    setUserForm({ email: '', full_name: '', role: 'ASSOCIATE', password: '' });
+    setUserModalOpen(true);
+  };
+
+  const openEditUser = (user) => {
+    setEditingUser(user);
+    setUserForm({ email: user.email, full_name: user.full_name, role: user.role, password: '' });
+    setUserModalOpen(true);
+  };
+
+  const handleSaveUser = async () => {
+    setUserSaving(true);
+    try {
+      if (editingUser) {
+        const body = { email: userForm.email, full_name: userForm.full_name, role: userForm.role };
+        await api.put(`/api/v1/auth/users/${editingUser.id}`, body);
+        setToast({ type: 'success', message: 'User updated' });
+      } else {
+        await api.post('/api/v1/auth/users', userForm);
+        setToast({ type: 'success', message: 'User created' });
+      }
+      setUserModalOpen(false);
+      fetchUsers();
+    } catch (e) {
+      setToast({ type: 'error', message: e.response?.data?.detail || 'Failed to save user' });
+    }
+    setUserSaving(false);
+  };
+
+  const handleToggleActive = async (user) => {
+    try {
+      await api.put(`/api/v1/auth/users/${user.id}`, { is_active: !user.is_active });
+      setToast({ type: 'success', message: user.is_active ? 'User deactivated' : 'User reactivated' });
+      fetchUsers();
+    } catch (e) {
+      setToast({ type: 'error', message: e.response?.data?.detail || 'Failed to update user' });
+    }
+  };
+
   useEffect(() => {
     fetchHealth();
   }, []);
@@ -104,6 +168,9 @@ export default function SystemAdmin() {
   useEffect(() => {
     if (tab === 'backups' && backups.length === 0 && !backupsLoading) {
       fetchBackups();
+    }
+    if (tab === 'users' && users.length === 0 && !usersLoading) {
+      fetchUsers();
     }
   }, [tab]);
 
@@ -347,7 +414,127 @@ export default function SystemAdmin() {
               />
             </>
           )}
+
+          {/* Users Tab */}
+          {tab === 'users' && (
+            <>
+              <div style={{ marginBottom: 16 }}>
+                <button className="btn btn--primary" onClick={openCreateUser}>
+                  Add User
+                </button>
+              </div>
+
+              {usersError && (
+                <div className="alert alert--error" style={{ marginBottom: 16 }}>{usersError}</div>
+              )}
+
+              <DataTable
+                columns={[
+                  { key: 'full_name', label: 'Name' },
+                  { key: 'email', label: 'Email' },
+                  {
+                    key: 'role',
+                    label: 'Role',
+                    render: (val) => val === 'CPA_OWNER' ? 'CPA Owner' : 'Associate',
+                  },
+                  {
+                    key: 'is_active',
+                    label: 'Status',
+                    render: (val) => (
+                      <span className={`badge badge--${val ? 'active' : 'inactive'}`}>
+                        {val ? 'Active' : 'Inactive'}
+                      </span>
+                    ),
+                  },
+                  {
+                    key: 'last_login_at',
+                    label: 'Last Login',
+                    render: (val) => formatTimestamp(val),
+                  },
+                  {
+                    key: 'actions',
+                    label: 'Actions',
+                    render: (_, row) => (
+                      <div style={{ display: 'flex', gap: 6 }} onClick={(e) => e.stopPropagation()}>
+                        <button className="btn btn--small btn--outline" onClick={() => openEditUser(row)}>
+                          Edit
+                        </button>
+                        <button
+                          className={`btn btn--small ${row.is_active ? 'btn--danger' : 'btn--outline'}`}
+                          onClick={() => handleToggleActive(row)}
+                        >
+                          {row.is_active ? 'Deactivate' : 'Activate'}
+                        </button>
+                      </div>
+                    ),
+                  },
+                ]}
+                data={users}
+                total={users.length}
+                loading={usersLoading}
+                emptyMessage="No users found."
+              />
+            </>
+          )}
         </div>
+
+        {/* User Create/Edit Modal */}
+        <Modal
+          isOpen={userModalOpen}
+          title={editingUser ? 'Edit User' : 'Create User'}
+          onClose={() => !userSaving && setUserModalOpen(false)}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <FormField label="Full Name">
+              <input
+                className="form-input"
+                value={userForm.full_name}
+                onChange={(e) => setUserForm({ ...userForm, full_name: e.target.value })}
+              />
+            </FormField>
+            <FormField label="Email">
+              <input
+                className="form-input"
+                type="email"
+                value={userForm.email}
+                onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
+              />
+            </FormField>
+            <FormField label="Role">
+              <select
+                className="form-input form-select"
+                value={userForm.role}
+                onChange={(e) => setUserForm({ ...userForm, role: e.target.value })}
+              >
+                <option value="ASSOCIATE">Associate</option>
+                <option value="CPA_OWNER">CPA Owner</option>
+              </select>
+            </FormField>
+            {!editingUser && (
+              <FormField label="Password">
+                <input
+                  className="form-input"
+                  type="password"
+                  value={userForm.password}
+                  onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
+                  placeholder="Min 8 chars, upper/lower/digit/special"
+                />
+              </FormField>
+            )}
+          </div>
+          <div className="modal-actions" style={{ marginTop: 16 }}>
+            <button className="btn btn--outline" onClick={() => setUserModalOpen(false)} disabled={userSaving}>
+              Cancel
+            </button>
+            <button
+              className={`btn btn--primary${userSaving ? ' btn--loading' : ''}`}
+              onClick={handleSaveUser}
+              disabled={userSaving}
+            >
+              {editingUser ? 'Save Changes' : 'Create User'}
+            </button>
+          </div>
+        </Modal>
 
         {/* Restore Confirmation Modal */}
         <Modal

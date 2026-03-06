@@ -142,17 +142,25 @@ mkdir -p "$LAUNCH_AGENTS"
 # Stop existing services if running
 launchctl bootout "gui/$(id -u)/com.gacpa.backend" 2>/dev/null || true
 launchctl bootout "gui/$(id -u)/com.gacpa.backup" 2>/dev/null || true
+launchctl bootout "gui/$(id -u)/com.gacpa.dbmaint" 2>/dev/null || true
+launchctl bootout "gui/$(id -u)/com.gacpa.logrotate" 2>/dev/null || true
 
 # Copy plists
 cp "$PROJECT_ROOT/deploy/com.gacpa.backend.plist" "$LAUNCH_AGENTS/"
 cp "$PROJECT_ROOT/deploy/com.gacpa.backup.plist" "$LAUNCH_AGENTS/"
+cp "$PROJECT_ROOT/deploy/com.gacpa.dbmaint.plist" "$LAUNCH_AGENTS/"
+cp "$PROJECT_ROOT/deploy/com.gacpa.logrotate.plist" "$LAUNCH_AGENTS/"
 
 # Load services
 launchctl bootstrap "gui/$(id -u)" "$LAUNCH_AGENTS/com.gacpa.backend.plist"
 launchctl bootstrap "gui/$(id -u)" "$LAUNCH_AGENTS/com.gacpa.backup.plist"
+launchctl bootstrap "gui/$(id -u)" "$LAUNCH_AGENTS/com.gacpa.dbmaint.plist"
+launchctl bootstrap "gui/$(id -u)" "$LAUNCH_AGENTS/com.gacpa.logrotate.plist"
 
-echo "  Backend service: installed (auto-starts on login)"
-echo "  Backup service:  installed (runs daily at 2:00 AM)"
+echo "  Backend service:    installed (auto-starts on login)"
+echo "  Backup service:     installed (runs daily at 2:00 AM)"
+echo "  DB maintenance:     installed (weekly VACUUM/REINDEX)"
+echo "  Log rotation:       installed (daily rotation)"
 
 # -------------------------------------------------------
 # 6. Start nginx

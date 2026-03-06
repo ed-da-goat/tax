@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import useApi from '../hooks/useApi';
 import useToast from '../hooks/useToast';
+import useUnsavedChanges from '../hooks/useUnsavedChanges';
 import { FormField } from '../components/FormField';
 import { useApiQuery } from '../hooks/useApiQuery';
 import { formatCurrency } from '../utils/format';
@@ -25,6 +26,14 @@ export default function JournalEntryForm() {
   });
   const [lines, setLines] = useState([emptyLine(), emptyLine()]);
   const [errors, setErrors] = useState({});
+
+  const isDirty = useMemo(() => {
+    const hasFormData = form.description || form.reference_number;
+    const hasLineData = lines.some((l) => l.account_id || l.debit || l.credit);
+    return !!(hasFormData || hasLineData);
+  }, [form, lines]);
+
+  useUnsavedChanges(isDirty);
 
   const accounts = (accountsData?.items || []).filter((a) => a.is_active);
 
